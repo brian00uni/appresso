@@ -1,24 +1,23 @@
 import React, { useState } from 'react'
+import fcOff from '../../images/fc-off-cookie.png'
+import fcOn from '../../images/fc-on-cookie.png'
+import fcvOff from '../../images/fcv-off-cookie.png'
+import fcvOn from '../../images/fcv-on-cookie.png'
+import fcBg from '../../images/fc-bg.png'
+import { fortunes, vipFortunes } from '../../data/fortunes'
 
-const fortunes = [
-  "오늘 당신의 노력은 반드시 결실을 맺을 것입니다.",
-  "작은 친절이 세상을 바꿉니다. 오늘 누군가에게 미소를 건네세요.",
-  "새로운 도전을 두려워하지 마세요. 성장은 불편함 속에 있습니다.",
-  "당신이 생각하는 것보다 훨씬 강한 사람입니다.",
-  "좋은 일이 곧 당신에게 찾아올 것입니다. 준비하세요.",
-  "지금 이 순간이 바로 인생의 가장 좋은 시간입니다.",
-  "포기하지 마세요. 끝이 보이지 않을 때가 가장 가까운 순간입니다.",
-  "당신의 꿈은 충분히 이룰 수 있습니다. 한 걸음씩 나아가세요.",
-  "신뢰는 천천히 쌓이지만 모든 관계의 기초입니다.",
-  "오늘의 실패는 내일의 지혜입니다.",
-  "당신 주변의 사람들이 당신을 사랑하고 있습니다.",
-  "창의력을 믿으세요. 당신 안에 해답이 있습니다.",
-]
+const FIXED_COMMENT =
+  "오늘 이 운세가 나왔네요! 뭔가 딱 보는 순간 '이건 진짜다' 싶은 물건을 만나게 될 징조인가 봅니다. 가성비 수호대답게 오늘도 똑똑하고 즐거운 소비 하세요!"
+const SIGNATURE = '이 기운 받아서 오늘 하루도 바로 드가자~! 룸바~!'
 
 export default function FortuneCookie() {
+  const [vip, setVip] = useState(false)
   const [fortune, setFortune] = useState(null)
   const [cracked, setCracked] = useState(false)
   const [spinning, setSpinning] = useState(false)
+
+  const pool = vip ? vipFortunes : fortunes
+  const cookieImg = cracked ? (vip ? fcvOn : fcOn) : (vip ? fcvOff : fcOff)
 
   function crack() {
     if (spinning) return
@@ -26,47 +25,105 @@ export default function FortuneCookie() {
     setCracked(false)
     setFortune(null)
     setTimeout(() => {
-      const idx = Math.floor(Math.random() * fortunes.length)
-      setFortune(fortunes[idx])
+      const idx = Math.floor(Math.random() * pool.length)
+      setFortune(pool[idx])
       setCracked(true)
       setSpinning(false)
     }, 800)
   }
 
+  function reset() {
+    setCracked(false)
+    setFortune(null)
+  }
+
+  function selectMode(nextVip) {
+    if (nextVip === vip) return
+    setVip(nextVip)
+    setCracked(false)
+    setFortune(null)
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center px-4">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{
+        backgroundImage: `url(${fcBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       <div className="text-center max-w-md w-full">
-        <h1 className="text-3xl font-bold text-gray-100 mb-2">🥠 포춘쿠키</h1>
-        <p className="text-gray-400 text-sm mb-10">쿠키를 깨면 오늘의 운세를 알 수 있어요</p>
-
-        {/* 쿠키 버튼 */}
-        <button
-          onClick={crack}
-          disabled={spinning}
-          className={`text-7xl transition-transform duration-300 cursor-pointer select-none ${
-            spinning ? 'animate-bounce' : 'hover:scale-110 active:scale-95'
-          }`}
-        >
-          {cracked ? '💫' : '🥠'}
-        </button>
-
-        {/* 운세 카드 */}
-        <div className={`mt-8 transition-all duration-500 ${cracked ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          {fortune && (
-            <div className="bg-gray-800 border border-violet-500/30 rounded-2xl px-8 py-6 shadow-lg shadow-violet-500/10">
-              <p className="text-gray-100 text-lg leading-relaxed font-medium">"{fortune}"</p>
-            </div>
-          )}
+        {/* 일반 | VIP 토글 */}
+        <div className="inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6">
+          <button
+            onClick={() => selectMode(false)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              !vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+            }`}
+          >
+            일반
+          </button>
+          <button
+            onClick={() => selectMode(true)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+            }`}
+          >
+            VIP
+          </button>
         </div>
 
-        <button
-          onClick={crack}
-          disabled={spinning}
-          className="mt-8 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-        >
-          {cracked ? '다시 뽑기' : '쿠키 열기'}
-        </button>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">🥠 포춘쿠키</h1>
+        <p className="text-gray-700/80 text-sm mb-20">쿠키를 깨면 오늘의 운세를 알 수 있어요</p>
+
+        {/* 쿠키 버튼 */}
+        <div className="relative inline-block">
+          {!cracked && (
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap bg-white text-gray-800 text-sm font-medium px-4 py-2 rounded-full shadow-lg animate-bounce">
+              저를 눌러주세요
+              <span className="absolute left-1/2 -translate-x-1/2 top-full w-3 h-3 bg-white rotate-45 -mt-1.5"></span>
+            </div>
+          )}
+          <button
+            onClick={crack}
+            disabled={spinning}
+            className={`cursor-pointer select-none transition-transform duration-300 ${
+              spinning ? 'animate-bounce' : 'hover:scale-105 active:scale-95'
+            }`}
+          >
+            <img
+              key={cookieImg}
+              src={cookieImg}
+              alt="포춘쿠키"
+              className={`w-80 mx-auto drop-shadow-xl ${cracked ? 'animate-cookie-open' : ''}`}
+            />
+          </button>
+        </div>
       </div>
+
+      {/* 운세 결과 레이어 */}
+      {cracked && fortune && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white/90 backdrop-blur border border-white/60 rounded-2xl px-8 py-6 shadow-2xl text-left max-w-md w-full animate-cookie-open">
+            <span className="inline-block bg-violet-500/10 text-violet-600 text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
+              {fortune.category}
+            </span>
+            <p className="text-gray-800 text-lg leading-relaxed font-bold">"{fortune.message}"</p>
+            <p className="text-gray-500 text-sm mt-2">💡 {fortune.glossary}</p>
+            <p className="text-gray-700 text-sm leading-relaxed mt-4">{FIXED_COMMENT}</p>
+            <p className="text-violet-600 text-sm font-semibold mt-3">{SIGNATURE}</p>
+
+            <button
+              onClick={reset}
+              className="mt-6 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full"
+            >
+              다시 뽑기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
