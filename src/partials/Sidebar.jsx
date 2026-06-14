@@ -120,7 +120,7 @@ function Sidebar({
                               <path d="M6.068 7.482A2.003 2.003 0 0 0 8 10a2 2 0 1 0-.518-3.932L3.707 2.293a1 1 0 0 0-1.414 1.414l3.775 3.775Z" />
                             </svg>                            
                             <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Dashboard
+                              가성비대장
                             </span>
                           </div>
                           {/* Icon */}
@@ -133,45 +133,29 @@ function Sidebar({
                       </a>
                       <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
                         <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " + (isActive ? "text-violet-500" : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Main
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="https://cruip.com/mosaic/"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " + (isActive ? "text-violet-500" : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Analytics
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="https://cruip.com/mosaic/"
-                              className={({ isActive }) =>
-                                "block transition duration-150 truncate " + (isActive ? "text-violet-500" : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Fintech
-                              </span>
-                            </NavLink>
-                          </li>
+                          {[
+                            { to: '/dashboard', label: '대시보드', end: true },
+                            { to: '/dashboard/menu', label: '메뉴관리' },
+                            { to: '/dashboard/calculator', label: '마진계산' },
+                            { to: '/dashboard/compare', label: '플랫폼비교' },
+                            { to: '/dashboard/report', label: '손익리포트' },
+                            { to: '/dashboard/benchmark', label: '벤치마킹' },
+                            { to: '/dashboard/settings', label: '설정' },
+                          ].map((item) => (
+                            <li key={item.to} className="mb-1 last:mb-0">
+                              <NavLink
+                                end={item.end}
+                                to={item.to}
+                                className={({ isActive }) =>
+                                  "block transition duration-150 truncate " + (isActive ? "text-violet-500" : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                }
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  {item.label}
+                                </span>
+                              </NavLink>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     </React.Fragment>

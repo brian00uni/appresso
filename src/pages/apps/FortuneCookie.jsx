@@ -46,8 +46,10 @@ export default function FortuneCookie() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-4"
+      className="flex flex-col items-center justify-center px-4"
       style={{
+        width: '100vw',
+        height: '100vh',
         backgroundImage: `url(${fcBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import PublicHeader from '../../partials/PublicHeader'
 import ChannelHoverCard from '../../components/ChannelHoverCard'
+import { extractYouTubeVideoId, downloadYoutubeVideo } from '../../lib/eyesApi'
 
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY
 const BASE_URL = 'https://www.googleapis.com/youtube/v3'
@@ -142,6 +143,10 @@ export default function YouTubePage() {
   const [page, setPage] = useState(1)
   const [hoverCard, setHoverCard] = useState(null)
   const hoverTimer = useRef(null)
+
+  const [downloadUrl, setDownloadUrl] = useState('')
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState('')
 
   function showHoverCard(ch, rect) {
     clearTimeout(hoverTimer.current)
@@ -292,6 +297,25 @@ export default function YouTubePage() {
     )
   }, [filteredChannels])
 
+  async function handleDownload(e) {
+    e.preventDefault()
+    const videoId = extractYouTubeVideoId(downloadUrl)
+    if (!videoId) {
+      setDownloadError('올바른 유튜브 URL을 입력하세요.')
+      return
+    }
+
+    setDownloading(true)
+    setDownloadError('')
+    try {
+      await downloadYoutubeVideo({ videoId, title: `youtube-${videoId}` })
+    } catch (err) {
+      setDownloadError(err.message)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   function handleSort(key) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -331,6 +355,25 @@ export default function YouTubePage() {
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-100">유튜브 채널 분석</h1>
           <p className="text-gray-400 mt-1 text-sm">인기 유튜브 채널을 검색하고 순위를 확인하세요</p>
+        </div>
+
+        {/* 유튜브 영상 다운로드 */}
+        <div className="bg-gray-800 rounded-xl border border-gray-700/60 p-5 mb-6">
+          <h2 className="text-sm font-bold text-gray-100 mb-3">유튜브 영상 다운로드</h2>
+          <form onSubmit={handleDownload} className="flex gap-3">
+            <input
+              type="url"
+              value={downloadUrl}
+              onChange={(e) => setDownloadUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="flex-1 px-4 py-2 text-sm bg-gray-700/50 border border-gray-700 text-gray-100 placeholder-gray-500 rounded-lg outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            />
+            <button type="submit" disabled={downloading}
+              className="btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 whitespace-nowrap">
+              {downloading ? '받는 중...' : '다운로드'}
+            </button>
+          </form>
+          {downloadError && <p className="text-sm text-red-400 mt-2">{downloadError}</p>}
         </div>
 
         {/* 상단 요약 통계바 */}

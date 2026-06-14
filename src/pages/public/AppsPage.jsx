@@ -1,6 +1,16 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import PublicHeader from '../../partials/PublicHeader'
+
+function openApp(e, appId) {
+  e.preventDefault()
+  const width = window.screen.width
+  const height = window.screen.height
+  window.open(
+    `/apps/${appId}`,
+    '_blank',
+    `width=${width},height=${height},left=0,top=0,toolbar=no,location=no,menubar=no,status=no,scrollbars=no,resizable=yes`
+  )
+}
 
 const appList = [
   {
@@ -9,6 +19,13 @@ const appList = [
     emoji: '🥠',
     desc: '쿠키를 깨면 오늘의 운세를 알 수 있어요',
     color: 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30',
+  },
+  {
+    id: 'lotto',
+    name: '로또 추천',
+    emoji: '🎱',
+    desc: '당첨번호 빈도·패턴 분석으로 추천번호를 받아보세요',
+    color: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/30',
   },
   // 앱 추가 예정
 ]
@@ -26,9 +43,10 @@ export default function AppsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {appList.map((app) => (
-            <Link
+            <a
               key={app.id}
-              to={`/apps/${app.id}`}
+              href={`/apps/${app.id}`}
+              onClick={(e) => openApp(e, app.id)}
               className={`bg-gradient-to-br ${app.color} bg-gray-800 border rounded-2xl p-6 hover:scale-105 transition-transform group`}
             >
               <div className="text-5xl mb-4">{app.emoji}</div>
@@ -40,7 +58,7 @@ export default function AppsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            </Link>
+            </a>
           ))}
 
           {/* 준비 중 카드 */}

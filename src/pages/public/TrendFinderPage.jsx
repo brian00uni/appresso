@@ -1,8 +1,35 @@
 import React, { useState, useRef, useMemo } from 'react'
 import PublicHeader from '../../partials/PublicHeader'
 import VideoHoverCard from '../../components/VideoHoverCard'
+import NaverTrendChart from '../../components/NaverTrendChart'
+import { EYES_API_BASE, postJson } from '../../lib/eyesApi'
 
-const API_URL = 'https://eyes-api.onrender.com/api/youtube/opportunities'
+const API_URL = `${EYES_API_BASE}/api/youtube/opportunities`
+
+const platformTabs = [
+  { v: 'youtube', l: '유튜브' },
+  { v: 'instagram', l: '인스타그램' },
+  { v: 'tiktok', l: '틱톡' },
+  { v: 'naver', l: '네이버 검색 추이' },
+]
+
+const naverDayOptions = [
+  { v: 7, l: '최근 7일' },
+  { v: 14, l: '최근 14일' },
+  { v: 30, l: '최근 30일' },
+  { v: 90, l: '최근 90일' },
+]
+
+const SOCIAL_COLUMNS = [
+  { key: 'title', label: '영상/게시물', align: 'left', type: 'string' },
+  { key: 'channelTitle', label: '채널', align: 'left', type: 'string' },
+  { key: 'matchedKeyword', label: '키워드', align: 'left', type: 'string' },
+  { key: 'viewCount', label: '조회수(추정)', align: 'right', type: 'number' },
+  { key: 'likeCount', label: '좋아요', align: 'right', type: 'number' },
+  { key: 'commentCount', label: '댓글', align: 'right', type: 'number' },
+  { key: 'opportunityScore', label: '점수', align: 'right', type: 'number' },
+  { key: 'publishedAt', label: '업로드', align: 'center', type: 'date' },
+]
 
 const dayOptions = [
   { v: 1, l: '최근 1일' },
@@ -122,6 +149,24 @@ function formatRelativeTime(iso) {
 }
 
 export default function TrendFinderPage() {
+  const [platformTab, setPlatformTab] = useState('youtube')
+
+  // 인스타그램 / 틱톡 탭 상태
+  const [socialForms, setSocialForms] = useState({
+    instagram: { keywords: '주식, 부업, 쇼츠, K뷰티', days: 7, locale: 'KR-ko' },
+    tiktok: { keywords: '주식, 부업, 쇼츠, K뷰티', days: 7, locale: 'KR-ko' },
+  })
+  const [socialResults, setSocialResults] = useState({ instagram: null, tiktok: null })
+  const [socialLoading, setSocialLoading] = useState(false)
+  const [socialError, setSocialError] = useState('')
+
+  // 네이버 검색 추이 탭 상태
+  const [naverKeywords, setNaverKeywords] = useState('주식, 부업, 쇼츠, K뷰티')
+  const [naverDays, setNaverDays] = useState(30)
+  const [naverResult, setNaverResult] = useState(null)
+  const [naverLoading, setNaverLoading] = useState(false)
+  const [naverError, setNaverError] = useState('')
+
   const [keywords, setKeywords] = useState('주식, 부업, 쇼츠, K뷰티')
   const [days, setDays] = useState(7)
   const [locale, setLocale] = useState('KR-ko')
@@ -226,6 +271,59 @@ export default function TrendFinderPage() {
     }
   }
 
+  function updateSocialForm(platform, patch) {
+    setSocialForms((prev) => ({ ...prev, [platform]: { ...prev[platform], ...patch } }))
+  }
+
+  async function handleSocialSearch(platform) {
+    const form = socialForms[platform]
+    const keywordList = form.keywords.split(',').map((k) => k.trim()).filter(Boolean)
+    if (keywordList.length === 0) return
+
+    setSocialLoading(true)
+    setSocialError('')
+    try {
+      const data = await postJson(`/api/${platform}/search`, {
+        keywords: keywordList,
+        days: form.days,
+        locale: form.locale,
+      })
+      setSocialResults((prev) => ({ ...prev, [platform]: data }))
+    } catch (e) {
+      setSocialError(e.message)
+      setSocialResults((prev) => ({ ...prev, [platform]: null }))
+    } finally {
+      setSocialLoading(false)
+    }
+  }
+
+  async function handleNaverSearch(e) {
+    e.preventDefault()
+    const keywordList = naverKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+    if (keywordList.length === 0) return
+
+    const today = new Date()
+    const endDate = today.toISOString().slice(0, 10)
+    const startDate = new Date(today.getTime() - naverDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+    setNaverLoading(true)
+    setNaverError('')
+    try {
+      const data = await postJson('/api/naver/trends', {
+        keywords: keywordList,
+        startDate,
+        endDate,
+        timeUnit: 'date',
+      })
+      setNaverResult(data)
+    } catch (e) {
+      setNaverError(e.message)
+      setNaverResult(null)
+    } finally {
+      setNaverLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       <PublicHeader />
@@ -236,17 +334,24 @@ export default function TrendFinderPage() {
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-100">조회수가 터진 영상</h1>
           <p className="text-gray-400 mt-1 text-sm">
-            최근 N일 안에 올라온 영상 중 조회수, 구독자 수, 댓글 수, 좋아요 수를 기반으로 기회점수를 계산합니다.{' '}
-            <button
-              type="button"
-              onClick={() => setShowScoreInfo((v) => !v)}
-              className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
-            >
-              기회점수 계산법 {showScoreInfo ? '접기' : '보기'}
-            </button>
+            {platformTab === 'naver'
+              ? '키워드별 네이버 통합검색 검색량 추이를 비교하고, 검색량이 빠르게 늘고 있는 키워드를 찾아보세요.'
+              : '최근 N일 안에 올라온 영상 중 조회수, 구독자 수, 댓글 수, 좋아요 수를 기반으로 기회점수를 계산합니다.'}
+            {platformTab !== 'naver' && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => setShowScoreInfo((v) => !v)}
+                  className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
+                >
+                  기회점수 계산법 {showScoreInfo ? '접기' : '보기'}
+                </button>
+              </>
+            )}
           </p>
 
-          {showScoreInfo && (
+          {platformTab !== 'naver' && showScoreInfo && (
             <div className="mt-3 bg-gray-800 border border-gray-700/60 rounded-xl p-4 text-xs text-gray-400 max-w-2xl">
               <p className="font-semibold text-gray-200 mb-2">기회점수(Opportunity Score)란?</p>
               <p className="mb-2">
@@ -265,6 +370,26 @@ export default function TrendFinderPage() {
           )}
         </div>
 
+        {/* 플랫폼 탭 */}
+        <div className="flex items-center gap-2 mb-6 border-b border-gray-700/60">
+          {platformTabs.map((tab) => (
+            <button
+              key={tab.v}
+              type="button"
+              onClick={() => setPlatformTab(tab.v)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                platformTab === tab.v
+                  ? 'text-violet-400 border-violet-400'
+                  : 'text-gray-400 border-transparent hover:text-gray-100'
+              }`}
+            >
+              {tab.l}
+            </button>
+          ))}
+        </div>
+
+        {platformTab === 'youtube' && (
+        <>
         {/* 검색 폼 */}
         <form onSubmit={handleSearch} className="bg-gray-800 rounded-xl border border-gray-700/60 p-5 mb-6">
           <label className="block text-sm text-gray-500 mb-2">키워드, 쉼표로 구분</label>
@@ -457,6 +582,34 @@ export default function TrendFinderPage() {
         {!loading && !result && !error && (
           <p className="text-xs text-gray-500 px-1">키워드를 입력하고 "조회수가 터진 영상 찾기" 버튼을 눌러주세요</p>
         )}
+        </>
+        )}
+
+        {(platformTab === 'instagram' || platformTab === 'tiktok') && (
+          <SocialSearchTab
+            platform={platformTab}
+            label={platformTab === 'instagram' ? '인스타그램' : '틱톡'}
+            form={socialForms[platformTab]}
+            onChangeForm={(patch) => updateSocialForm(platformTab, patch)}
+            onSearch={() => handleSocialSearch(platformTab)}
+            loading={socialLoading}
+            error={socialError}
+            result={socialResults[platformTab]}
+          />
+        )}
+
+        {platformTab === 'naver' && (
+          <NaverTrendTab
+            keywords={naverKeywords}
+            onChangeKeywords={setNaverKeywords}
+            days={naverDays}
+            onChangeDays={setNaverDays}
+            onSearch={handleNaverSearch}
+            loading={naverLoading}
+            error={naverError}
+            result={naverResult}
+          />
+        )}
       </main>
 
       {hoverCard && (
@@ -469,5 +622,207 @@ export default function TrendFinderPage() {
         />
       )}
     </div>
+  )
+}
+
+function SocialSearchTab({ platform, label, form, onChangeForm, onSearch, loading, error, result }) {
+  return (
+    <>
+      {/* 검색 폼 */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700/60 p-5 mb-6">
+        <label className="block text-sm text-gray-500 mb-2">키워드, 쉼표로 구분</label>
+        <textarea
+          value={form.keywords}
+          onChange={(e) => onChangeForm({ keywords: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              onSearch()
+            }
+          }}
+          rows={2}
+          placeholder="주식, 부업, 쇼츠, 목포 맛집, K뷰티"
+          className="w-full px-4 py-2 text-sm bg-gray-700/50 border border-gray-700 text-gray-100 placeholder-gray-500 rounded-lg outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none mb-4"
+        />
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4 max-w-xl">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">기간 / 최근 N일</label>
+            <select value={form.days} onChange={(e) => onChangeForm({ days: Number(e.target.value) })}
+              className="w-full text-sm bg-gray-700/50 border border-gray-700 text-gray-300 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-violet-500">
+              {dayOptions.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">국가-언어</label>
+            <select value={form.locale} onChange={(e) => onChangeForm({ locale: e.target.value })}
+              className="w-full text-sm bg-gray-700/50 border border-gray-700 text-gray-300 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-violet-500">
+              {localeOptions.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <button type="button" onClick={onSearch} disabled={loading}
+          className="btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+          {loading ? '검색 중...' : `${label}에서 조회수가 터진 영상 찾기`}
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-lg mb-4">{error}</p>}
+
+      {loading && (
+        <div className="flex justify-center py-24">
+          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && result && (
+        <>
+          <p className="text-xs text-gray-500 px-1 mb-3">{label} 검색 결과 {result.count ?? (result.items ?? []).length}개 — 기회점수 높은 순</p>
+
+          {(result.items ?? []).length > 0 ? (
+            <div className="bg-gray-800 rounded-xl border border-gray-700/60 overflow-x-auto">
+              <table className="w-full text-sm whitespace-nowrap">
+                <thead>
+                  <tr className="border-b border-gray-700/60 text-xs text-gray-500 uppercase">
+                    {SOCIAL_COLUMNS.map((col) => (
+                      <th key={col.key} className={`px-3 py-3 font-medium ${
+                        col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                      }`}>
+                        {col.label}
+                      </th>
+                    ))}
+                    <th className="px-3 py-3 font-medium text-center">링크</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(result.items ?? []).map((item) => (
+                    <tr key={item.videoId} className="border-b border-gray-700/40 last:border-0 hover:bg-gray-700/30 transition-colors">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3 min-w-[220px] max-w-[320px]">
+                          {item.thumbnail ? (
+                            <img src={item.thumbnail} alt={item.title} className="w-16 h-10 rounded object-cover flex-shrink-0 bg-gray-700" />
+                          ) : (
+                            <div className="w-16 h-10 rounded flex-shrink-0 bg-gray-700" />
+                          )}
+                          <p className="font-semibold text-gray-100 truncate text-sm">{item.title}</p>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-gray-400 max-w-[160px] truncate">{item.channelTitle}</td>
+                      <td className="px-3 py-3 text-gray-400">{item.matchedKeyword}</td>
+                      <td className="px-3 py-3 text-right font-semibold text-gray-200">{formatCount(item.viewCount)}</td>
+                      <td className="px-3 py-3 text-right text-gray-300">{formatCount(item.likeCount)}</td>
+                      <td className="px-3 py-3 text-right text-gray-300">{formatCount(item.commentCount)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-violet-400">{formatScore(item.opportunityScore)}</td>
+                      <td className="px-3 py-3 text-center text-gray-400">{formatRelativeTime(item.publishedAt)}</td>
+                      <td className="px-3 py-3 text-center">
+                        {item.url && (
+                          <a href={item.url} target="_blank" rel="noreferrer" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">
+                            보기
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 px-1">검색 결과가 없습니다.</p>
+          )}
+        </>
+      )}
+
+      {!loading && !result && !error && (
+        <p className="text-xs text-gray-500 px-1">키워드를 입력하고 "{label}에서 조회수가 터진 영상 찾기" 버튼을 눌러주세요</p>
+      )}
+    </>
+  )
+}
+
+function NaverTrendTab({ keywords, onChangeKeywords, days, onChangeDays, onSearch, loading, error, result }) {
+  return (
+    <>
+      {/* 검색 폼 */}
+      <form onSubmit={onSearch} className="bg-gray-800 rounded-xl border border-gray-700/60 p-5 mb-6">
+        <label className="block text-sm text-gray-500 mb-2">키워드, 쉼표로 구분</label>
+        <textarea
+          value={keywords}
+          onChange={(e) => onChangeKeywords(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              onSearch(e)
+            }
+          }}
+          rows={2}
+          placeholder="주식, 부업, 쇼츠, 목포 맛집, K뷰티"
+          className="w-full px-4 py-2 text-sm bg-gray-700/50 border border-gray-700 text-gray-100 placeholder-gray-500 rounded-lg outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none mb-4"
+        />
+
+        <div className="max-w-xs mb-4">
+          <label className="block text-xs text-gray-500 mb-1">기간</label>
+          <select value={days} onChange={(e) => onChangeDays(Number(e.target.value))}
+            className="w-full text-sm bg-gray-700/50 border border-gray-700 text-gray-300 rounded-lg px-2 py-2 outline-none focus:ring-2 focus:ring-violet-500">
+            {naverDayOptions.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        </div>
+
+        <button type="submit" disabled={loading}
+          className="btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50">
+          {loading ? '검색 중...' : '네이버 검색 추이 보기'}
+        </button>
+      </form>
+
+      {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-lg mb-4">{error}</p>}
+
+      {loading && (
+        <div className="flex justify-center py-24">
+          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && result && (
+        <>
+          <div className="bg-gray-800 rounded-xl border border-gray-700/60 p-5 mb-4">
+            <h2 className="text-sm font-bold text-gray-100 mb-3">검색량 추이 (상대값, 최대 100)</h2>
+            <NaverTrendChart results={result.results ?? []} />
+          </div>
+
+          <div className="bg-gray-800 rounded-xl border border-gray-700/60 overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-gray-700/60 text-xs text-gray-500 uppercase">
+                  <th className="px-3 py-3 font-medium text-left">키워드</th>
+                  <th className="px-3 py-3 font-medium text-right">시작값</th>
+                  <th className="px-3 py-3 font-medium text-right">최근값</th>
+                  <th className="px-3 py-3 font-medium text-right">증가폭</th>
+                  <th className="px-3 py-3 font-medium text-right">성장률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(result.growth ?? []).map((row) => (
+                  <tr key={row.keyword} className="border-b border-gray-700/40 last:border-0 hover:bg-gray-700/30 transition-colors">
+                    <td className="px-3 py-3 font-semibold text-gray-100">{row.keyword}</td>
+                    <td className="px-3 py-3 text-right text-gray-300">{Number(row.first).toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right text-gray-300">{Number(row.last).toFixed(1)}</td>
+                    <td className={`px-3 py-3 text-right font-semibold ${row.diff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {row.diff >= 0 ? '+' : ''}{Number(row.diff).toFixed(1)}
+                    </td>
+                    <td className={`px-3 py-3 text-right font-bold ${row.growthRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {row.growthRate == null ? '-' : `${row.growthRate >= 0 ? '+' : ''}${Number(row.growthRate).toFixed(1)}%`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {!loading && !result && !error && (
+        <p className="text-xs text-gray-500 px-1">키워드를 입력하고 "네이버 검색 추이 보기" 버튼을 눌러주세요</p>
+      )}
+    </>
   )
 }
