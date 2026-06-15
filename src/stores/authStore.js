@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { resetLocal } from '../lib/gaseongbi/remoteSync'
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -9,6 +10,7 @@ export const useAuthStore = create((set) => ({
   setLoading: (loading) => set({ loading }),
   signOut: async () => {
     await supabase.auth.signOut()
+    resetLocal()
     set({ user: null, session: null })
   },
 }))

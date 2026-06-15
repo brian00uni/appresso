@@ -1,14 +1,28 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { hydrate } from '../lib/gaseongbi/remoteSync'
 import GaseongbiSidebar from '../partials/gaseongbi/GaseongbiSidebar'
 import GaseongbiHeader from '../partials/gaseongbi/GaseongbiHeader'
 
 export default function DashboardLayout() {
   const { user, loading } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
 
-  if (loading) {
+  // 로그인 확정 후 Supabase 데이터로 로컬 캐시를 채운 뒤에 자식 페이지를 렌더한다.
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    hydrate(user.id).finally(() => {
+      if (active) setHydrated(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [user?.id])
+
+  if (loading || (user && !hydrated)) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />

@@ -1,12 +1,17 @@
 // 가성비대장 — localStorage 데이터 레이어 (메뉴/설정)
+// 로컬 우선 캐시이며, 쓰기는 remoteSync를 통해 Supabase에 백그라운드 동기화된다.
 
-const MENUS_KEY = 'gaseongbi_menus'
-const SETTINGS_KEY = 'gaseongbi_settings'
-const CALC_STATE_KEY = 'gaseongbi_calc_state'
-const STORE_INFO_KEY = 'gaseongbi_store_info'
-const MONTHLY_SNAPSHOTS_KEY = 'gaseongbi_monthly_snapshots'
-const BENCHMARK_KEY = 'gaseongbi_benchmark'
-const BENCHMARK_HISTORY_KEY = 'gaseongbi_benchmark_history'
+import {
+  MENUS_KEY,
+  SETTINGS_KEY,
+  CALC_STATE_KEY,
+  STORE_INFO_KEY,
+  MONTHLY_SNAPSHOTS_KEY,
+  BENCHMARK_KEY,
+  BENCHMARK_HISTORY_KEY,
+  SYNCED_KEYS,
+  schedulePush,
+} from './remoteSync'
 
 const ls = {
   get: (k, fb) => {
@@ -23,6 +28,8 @@ const ls = {
     } catch {
       // localStorage 사용 불가 환경(프라이빗 모드 등)에서는 조용히 무시
     }
+    // 동기화 대상 키 변경 시 Supabase로 디바운스 push
+    if (SYNCED_KEYS.has(k)) schedulePush()
   },
 }
 

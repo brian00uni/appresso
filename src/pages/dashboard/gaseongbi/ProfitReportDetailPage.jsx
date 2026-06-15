@@ -1,4 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '../../../stores/authStore'
+import { hydrate } from '../../../lib/gaseongbi/remoteSync'
 import { getMenus, getSettings } from '../../../lib/gaseongbi/storage'
 import { aggregateMenus, calcMenuMargin, formatWon, formatPercent, getRating } from '../../../lib/gaseongbi/calc'
 import { getAiCommentForAggregate, getMonthlySummary } from '../../../lib/gaseongbi/aiComment'
@@ -8,7 +11,37 @@ import { ICONS } from '../../../components/gaseongbi/icons'
 
 const CARD_CLASS = 'bg-white shadow-xs rounded-xl border border-gray-100 p-5 print:shadow-none print:border-gray-300'
 
+// 이 페이지는 DashboardLayout 밖의 라우트라(/dashboard/report/detail) 직접 진입 시
+// 인증 + Supabase 하이드레이션을 자체적으로 보장한 뒤 내용을 렌더한다.
 export default function ProfitReportDetailPage() {
+  const { user, loading } = useAuthStore()
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    hydrate(user.id).finally(() => {
+      if (active) setHydrated(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [user?.id])
+
+  if (loading || (user && !hydrated)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) return <Navigate to="/login" replace />
+
+  return <ProfitReportDetailContent />
+}
+
+function ProfitReportDetailContent() {
   const settings = useMemo(() => getSettings(), [])
   const menus = useMemo(() => getMenus(), [])
   const aggregate = useMemo(() => aggregateMenus(menus, settings), [menus, settings])
