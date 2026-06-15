@@ -153,35 +153,35 @@ export default function CompetitorFormModal({ open, initialValue, onSave, onClos
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>대표 메뉴 가격 (원)</label>
-              <input type="number" className={inputClass} value={form.repPrice} min={0} onChange={(e) => setNumber('repPrice', e.target.value)} />
+              <input type="text" className={inputClass} value={form.repPrice} min={0} onChange={(e) => setNumber('repPrice', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>배달팁 (원)</label>
-              <input type="number" className={inputClass} value={form.deliveryTip} min={0} onChange={(e) => setNumber('deliveryTip', e.target.value)} />
+              <input type="text" className={inputClass} value={form.deliveryTip} min={0} onChange={(e) => setNumber('deliveryTip', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>쿠폰 금액 (원)</label>
-              <input type="number" className={inputClass} value={form.coupon} min={0} onChange={(e) => setNumber('coupon', e.target.value)} />
+              <input type="text" className={inputClass} value={form.coupon} min={0} onChange={(e) => setNumber('coupon', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>세트 메뉴 수</label>
-              <input type="number" className={inputClass} value={form.setCount} min={0} onChange={(e) => setNumber('setCount', e.target.value)} />
+              <input type="text" className={inputClass} value={form.setCount} min={0} onChange={(e) => setNumber('setCount', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>사진 경쟁력 (0~100)</label>
-              <input type="number" className={inputClass} value={form.photoStyle} min={0} max={100} onChange={(e) => setNumber('photoStyle', e.target.value)} />
+              <input type="text" className={inputClass} value={form.photoStyle} min={0} max={100} onChange={(e) => setNumber('photoStyle', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>리뷰 이벤트 반응도 (0~100)</label>
-              <input type="number" className={inputClass} value={form.reviewEvent} min={0} max={100} onChange={(e) => setNumber('reviewEvent', e.target.value)} />
+              <input type="text" className={inputClass} value={form.reviewEvent} min={0} max={100} onChange={(e) => setNumber('reviewEvent', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>리뷰 평점 (0~5)</label>
-              <input type="number" className={inputClass} value={form.reviewScore} min={0} max={5} step={0.1} onChange={(e) => setNumber('reviewScore', e.target.value)} />
+              <input type="text" className={inputClass} value={form.reviewScore} min={0} max={5} step={0.1} onChange={(e) => setNumber('reviewScore', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>주문 전환율 (%)</label>
-              <input type="number" className={inputClass} value={form.conversionRate} min={0} max={100} onChange={(e) => setNumber('conversionRate', e.target.value)} />
+              <input type="text" className={inputClass} value={form.conversionRate} min={0} max={100} onChange={(e) => setNumber('conversionRate', e.target.value)} />
             </div>
           </div>
 

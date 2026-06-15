@@ -180,15 +180,15 @@ export default function MarginCalculatorPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>판매가 (원)</label>
-              <input type="number" className={inputClass} value={form.salePrice} min={0} onChange={(e) => setNumberField('salePrice', e.target.value)} />
+              <input type="text" className={inputClass} value={form.salePrice} min={0} onChange={(e) => setNumberField('salePrice', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>식재료원가 (원)</label>
-              <input type="number" className={inputClass} value={form.foodCost} min={0} onChange={(e) => setNumberField('foodCost', e.target.value)} />
+              <input type="text" className={inputClass} value={form.foodCost} min={0} onChange={(e) => setNumberField('foodCost', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>포장비 (원)</label>
-              <input type="number" className={inputClass} value={form.packingCost} min={0} onChange={(e) => setNumberField('packingCost', e.target.value)} />
+              <input type="text" className={inputClass} value={form.packingCost} min={0} onChange={(e) => setNumberField('packingCost', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>플랫폼</label>
@@ -204,7 +204,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>중개수수료율 (%)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={(form.commissionRate * 100).toFixed(2)}
                 min={0}
@@ -215,7 +215,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>카드수수료율 (%)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={(form.cardFeeRate * 100).toFixed(2)}
                 min={0}
@@ -226,7 +226,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>배달대행비 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.deliveryAgencyFee}
                 min={0}
@@ -236,7 +236,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>고객부담 배달팁 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.customerDeliveryTip}
                 min={0}
@@ -246,7 +246,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>사장님부담 쿠폰 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.ownerCoupon}
                 min={0}
@@ -257,7 +257,7 @@ export default function MarginCalculatorPage() {
               <label className={labelClass}>광고비 (1건당, 원)</label>
               <div className="flex gap-2">
                 <input
-                  type="number"
+                  type="text"
                   className={inputClass}
                   value={form.adCost}
                   min={0}
@@ -275,7 +275,7 @@ export default function MarginCalculatorPage() {
             <div>
               <label className={labelClass}>목표 마진율 (%)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={(form.targetMarginRate * 100).toFixed(1)}
                 min={0}
@@ -321,11 +321,11 @@ export default function MarginCalculatorPage() {
                 <div className="grid grid-cols-2 gap-3 max-w-md">
                   <div>
                     <label className={labelClass}>광고 사용금액 (원)</label>
-                    <input type="number" className={inputClass} value={adHelper.adSpend} onChange={(e) => setAdHelper((a) => ({ ...a, adSpend: Number(e.target.value) || 0 }))} />
+                    <input type="text" className={inputClass} value={adHelper.adSpend} onChange={(e) => setAdHelper((a) => ({ ...a, adSpend: Number(e.target.value) || 0 }))} />
                   </div>
                   <div>
                     <label className={labelClass}>광고로 발생한 주문 수</label>
-                    <input type="number" className={inputClass} value={adHelper.adOrders} onChange={(e) => setAdHelper((a) => ({ ...a, adOrders: Number(e.target.value) || 0 }))} />
+                    <input type="text" className={inputClass} value={adHelper.adOrders} onChange={(e) => setAdHelper((a) => ({ ...a, adOrders: Number(e.target.value) || 0 }))} />
                   </div>
                 </div>
               )}
@@ -334,7 +334,7 @@ export default function MarginCalculatorPage() {
                   <div>
                     <label className={labelClass}>광고비율 (판매가 대비 %)</label>
                     <input
-                      type="number"
+                      type="text"
                       className={inputClass}
                       value={adHelper.adRate * 100}
                       onChange={(e) => setAdHelper((a) => ({ ...a, adRate: (Number(e.target.value) || 0) / 100 }))}
@@ -342,7 +342,7 @@ export default function MarginCalculatorPage() {
                   </div>
                   <div>
                     <label className={labelClass}>판매가 (원)</label>
-                    <input type="number" className={inputClass} value={form.salePrice} disabled />
+                    <input type="text" className={inputClass} value={form.salePrice} disabled />
                   </div>
                 </div>
               )}
@@ -350,11 +350,11 @@ export default function MarginCalculatorPage() {
                 <div className="grid grid-cols-2 gap-3 max-w-md">
                   <div>
                     <label className={labelClass}>월 고정 광고비 (원)</label>
-                    <input type="number" className={inputClass} value={adHelper.fixedAdBudget} onChange={(e) => setAdHelper((a) => ({ ...a, fixedAdBudget: Number(e.target.value) || 0 }))} />
+                    <input type="text" className={inputClass} value={adHelper.fixedAdBudget} onChange={(e) => setAdHelper((a) => ({ ...a, fixedAdBudget: Number(e.target.value) || 0 }))} />
                   </div>
                   <div>
                     <label className={labelClass}>월 주문 수</label>
-                    <input type="number" className={inputClass} value={adHelper.monthlyOrders} onChange={(e) => setAdHelper((a) => ({ ...a, monthlyOrders: Number(e.target.value) || 0 }))} />
+                    <input type="text" className={inputClass} value={adHelper.monthlyOrders} onChange={(e) => setAdHelper((a) => ({ ...a, monthlyOrders: Number(e.target.value) || 0 }))} />
                   </div>
                 </div>
               )}

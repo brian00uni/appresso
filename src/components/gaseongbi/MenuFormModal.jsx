@@ -69,7 +69,7 @@ export default function MenuFormModal({ open, initialValue, onSave, onClose }) {
             <div>
               <label className={labelClass}>판매가 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.deliveryPrice}
                 onChange={(e) => handleNumberChange('deliveryPrice', e.target.value)}
@@ -79,7 +79,7 @@ export default function MenuFormModal({ open, initialValue, onSave, onClose }) {
             <div>
               <label className={labelClass}>식재료원가 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.foodCost}
                 onChange={(e) => handleNumberChange('foodCost', e.target.value)}
@@ -92,7 +92,7 @@ export default function MenuFormModal({ open, initialValue, onSave, onClose }) {
             <div>
               <label className={labelClass}>포장비 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.packingCost}
                 onChange={(e) => handleNumberChange('packingCost', e.target.value)}
@@ -102,7 +102,7 @@ export default function MenuFormModal({ open, initialValue, onSave, onClose }) {
             <div>
               <label className={labelClass}>기본 쿠폰 (원)</label>
               <input
-                type="number"
+                type="text"
                 className={inputClass}
                 value={form.defaultCoupon}
                 onChange={(e) => handleNumberChange('defaultCoupon', e.target.value)}

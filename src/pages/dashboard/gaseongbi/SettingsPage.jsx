@@ -85,7 +85,7 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>중개수수료율 (%)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={(platform.commissionRate * 100).toFixed(2)}
                     onChange={(e) => setPlatformField(id, 'commissionRate', e.target.value, true)}
@@ -94,7 +94,7 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>카드수수료율 (%)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={(platform.cardFeeRate * 100).toFixed(2)}
                     onChange={(e) => setPlatformField(id, 'cardFeeRate', e.target.value, true)}
@@ -103,7 +103,7 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>배달대행비 (원)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={platform.deliveryAgencyFee}
                     onChange={(e) => setPlatformField(id, 'deliveryAgencyFee', e.target.value, false)}
@@ -131,7 +131,7 @@ export default function SettingsPage() {
           <div>
             <label className={labelClass}>목표 마진율 (%)</label>
             <input
-              type="number"
+              type="text"
               className={inputClass}
               value={(settings.defaults.targetMarginRate * 100).toFixed(1)}
               onChange={(e) => setDefaultField('targetMarginRate', (Number(e.target.value) || 0) / 100)}
@@ -140,7 +140,7 @@ export default function SettingsPage() {
           <div>
             <label className={labelClass}>기본 광고비 (1건당, 원)</label>
             <input
-              type="number"
+              type="text"
               className={inputClass}
               value={settings.defaults.adCost}
               onChange={(e) => setDefaultField('adCost', Number(e.target.value) || 0)}
@@ -149,7 +149,7 @@ export default function SettingsPage() {
           <div>
             <label className={labelClass}>고객부담 배달팁 (원)</label>
             <input
-              type="number"
+              type="text"
               className={inputClass}
               value={settings.defaults.customerDeliveryTip}
               onChange={(e) => setDefaultField('customerDeliveryTip', Number(e.target.value) || 0)}
@@ -158,7 +158,7 @@ export default function SettingsPage() {
           <div>
             <label className={labelClass}>사장님부담 쿠폰 (원)</label>
             <input
-              type="number"
+              type="text"
               className={inputClass}
               value={settings.defaults.ownerCoupon}
               onChange={(e) => setDefaultField('ownerCoupon', Number(e.target.value) || 0)}
@@ -167,7 +167,7 @@ export default function SettingsPage() {
           <div>
             <label className={labelClass}>메뉴당 월 판매량 가정 (개)</label>
             <input
-              type="number"
+              type="text"
               className={inputClass}
               min={1}
               value={settings.defaults.monthlyUnitsPerMenu}

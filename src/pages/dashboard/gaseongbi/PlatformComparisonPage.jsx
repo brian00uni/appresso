@@ -132,31 +132,31 @@ export default function PlatformComparisonPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>판매가 (원)</label>
-              <input type="number" className={inputClass} value={menuValues.salePrice} onChange={(e) => setMenuValueField('salePrice', e.target.value)} />
+              <input type="text" className={inputClass} value={menuValues.salePrice} onChange={(e) => setMenuValueField('salePrice', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>식재료원가 (원)</label>
-              <input type="number" className={inputClass} value={menuValues.foodCost} onChange={(e) => setMenuValueField('foodCost', e.target.value)} />
+              <input type="text" className={inputClass} value={menuValues.foodCost} onChange={(e) => setMenuValueField('foodCost', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>포장비 (원)</label>
-              <input type="number" className={inputClass} value={menuValues.packingCost} onChange={(e) => setMenuValueField('packingCost', e.target.value)} />
+              <input type="text" className={inputClass} value={menuValues.packingCost} onChange={(e) => setMenuValueField('packingCost', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>고객부담 배달팁 (원)</label>
-              <input type="number" className={inputClass} value={shared.customerDeliveryTip} onChange={(e) => setSharedNumber('customerDeliveryTip', e.target.value)} />
+              <input type="text" className={inputClass} value={shared.customerDeliveryTip} onChange={(e) => setSharedNumber('customerDeliveryTip', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>사장님부담 쿠폰 (원)</label>
-              <input type="number" className={inputClass} value={shared.ownerCoupon} onChange={(e) => setSharedNumber('ownerCoupon', e.target.value)} />
+              <input type="text" className={inputClass} value={shared.ownerCoupon} onChange={(e) => setSharedNumber('ownerCoupon', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>광고비 (1건당, 원)</label>
-              <input type="number" className={inputClass} value={shared.adCost} onChange={(e) => setSharedNumber('adCost', e.target.value)} />
+              <input type="text" className={inputClass} value={shared.adCost} onChange={(e) => setSharedNumber('adCost', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>목표 마진율 (%)</label>
-              <input type="number" className={inputClass} value={(shared.targetMarginRate * 100).toFixed(1)} onChange={(e) => setSharedField('targetMarginRate', (Number(e.target.value) || 0) / 100)} />
+              <input type="text" className={inputClass} value={(shared.targetMarginRate * 100).toFixed(1)} onChange={(e) => setSharedField('targetMarginRate', (Number(e.target.value) || 0) / 100)} />
             </div>
             <div className="flex items-end">
               <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -219,7 +219,7 @@ export default function PlatformComparisonPage() {
                 <div>
                   <label className={labelClass}>중개수수료율 (%)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={(inputs.commissionRate * 100).toFixed(2)}
                     onChange={(e) => setPlatformField(id, 'commissionRate', e.target.value, true)}
@@ -228,7 +228,7 @@ export default function PlatformComparisonPage() {
                 <div>
                   <label className={labelClass}>카드수수료율 (%)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={(inputs.cardFeeRate * 100).toFixed(2)}
                     onChange={(e) => setPlatformField(id, 'cardFeeRate', e.target.value, true)}
@@ -237,7 +237,7 @@ export default function PlatformComparisonPage() {
                 <div>
                   <label className={labelClass}>배달대행비 (원)</label>
                   <input
-                    type="number"
+                    type="text"
                     className={inputClass}
                     value={inputs.deliveryAgencyFee}
                     onChange={(e) => setPlatformField(id, 'deliveryAgencyFee', e.target.value, false)}
