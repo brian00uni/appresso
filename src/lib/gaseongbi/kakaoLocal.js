@@ -9,7 +9,7 @@ export function hasKakaoKey() {
 }
 
 // query: 검색어 (가게명/지역명 등)
-// 반환: [{ name, category, address, distance, x, y }]
+// 반환: [{ name, category, address, distance, x, y, placeUrl }]
 export async function searchPlaces(query) {
   if (!KAKAO_REST_API_KEY) throw new Error('KAKAO_API_KEY_MISSING')
   if (!query?.trim()) return []
@@ -28,6 +28,7 @@ export async function searchPlaces(query) {
     distance: d.distance ? Number(d.distance) : null,
     x: d.x,
     y: d.y,
+    placeUrl: d.place_url || '',
   }))
 }
 
@@ -38,7 +39,7 @@ export async function geocodeAddress(query) {
 }
 
 // 좌표 주변의 음식점을 검색한다 (지역 경쟁가게 추천용)
-// 반환: [{ name, category, address, distance, x, y }]
+// 반환: [{ name, category, address, distance, x, y, placeUrl }]
 export async function searchNearbyRestaurants({ x, y, radius = 1500 }) {
   if (!KAKAO_REST_API_KEY) throw new Error('KAKAO_API_KEY_MISSING')
 
@@ -63,5 +64,6 @@ export async function searchNearbyRestaurants({ x, y, radius = 1500 }) {
     distance: d.distance ? Number(d.distance) : null,
     x: d.x,
     y: d.y,
+    placeUrl: d.place_url || '',
   }))
 }

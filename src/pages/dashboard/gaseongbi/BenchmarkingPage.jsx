@@ -10,6 +10,7 @@ import {
   getStoreInfo,
 } from '../../../lib/gaseongbi/storage'
 import { formatWon } from '../../../lib/gaseongbi/calc'
+import { searchPlaces, hasKakaoKey } from '../../../lib/gaseongbi/kakaoLocal'
 import BenchmarkRadarChart from '../../../components/gaseongbi/BenchmarkRadarChart'
 import MyStoreFormModal from '../../../components/gaseongbi/MyStoreFormModal'
 import CompetitorFormModal from '../../../components/gaseongbi/CompetitorFormModal'
@@ -104,16 +105,74 @@ function avgOf(scores) {
   return METRICS.reduce((sum, m) => sum + scores[m.key], 0) / METRICS.length
 }
 
-function CompetitorCard({ competitor, onEdit, onDelete }) {
+// 가게명+주소로 카카오맵 일반 검색 링크 (placeUrl 조회 실패 시 폴백)
+function kakaoSearchFallback(competitor) {
+  const q = [competitor.name, competitor.address].filter(Boolean).join(' ').trim()
+  return q ? `https://map.kakao.com/?q=${encodeURIComponent(q)}` : 'https://map.kakao.com'
+}
+
+function CompetitorCard({ competitor, onEdit, onDelete, onResolved }) {
+  const priceMissing = !competitor.repPrice
+
+  // 모달 검색과 동일하게: placeUrl이 있으면 place.map 상세로, 없으면 카카오로 조회해 place.map 상세로 연결.
+  const handlePriceClick = async (e) => {
+    e.preventDefault()
+    // noopener를 features로 주면 window.open이 null을 반환해 탭 이동이 안 되므로 생략한다.
+    const win = window.open('', '_blank')
+    let url = competitor.placeUrl
+    if (!url && hasKakaoKey()) {
+      // 주소 포함 검색 → 실패 시 가게명만으로 재시도 (place.map 상세 링크 확보)
+      const queries = [[competitor.name, competitor.address].filter(Boolean).join(' '), competitor.name].filter(Boolean)
+      for (const q of queries) {
+        try {
+          const results = await searchPlaces(q)
+          if (results[0]?.placeUrl) {
+            url = results[0].placeUrl
+            break
+          }
+        } catch {
+          // 다음 쿼리로 폴백
+        }
+      }
+      // 찾은 상세 링크는 저장해 다음부터 즉시 연결되도록 한다.
+      if (url && onResolved) onResolved(url)
+    }
+    if (!url) url = kakaoSearchFallback(competitor)
+    if (win) win.location.href = url
+  }
   return (
-    <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 p-3">
+    <div
+      className={`rounded-lg p-3 ${
+        priceMissing
+          ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30'
+          : 'bg-gray-50 dark:bg-gray-900/40'
+      }`}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="min-w-0">
-          <span className="font-medium text-gray-800 dark:text-gray-100 truncate">{competitor.name}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-gray-800 dark:text-gray-100 truncate">{competitor.name}</span>
+            {priceMissing && (
+              <span className="flex-none text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                가격 미입력
+              </span>
+            )}
+          </div>
           {(competitor.category || competitor.address) && (
             <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
               {[competitor.category, competitor.address].filter(Boolean).join(' · ')}
             </div>
+          )}
+          {competitor.name && (
+            <a
+              href={competitor.placeUrl || kakaoSearchFallback(competitor)}
+              onClick={handlePriceClick}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-0.5 text-xs font-medium text-violet-500 hover:underline"
+            >
+              가격 보기 ↗
+            </a>
           )}
         </div>
         <div className="flex gap-1 text-xs flex-none">
@@ -126,7 +185,9 @@ function CompetitorCard({ competitor, onEdit, onDelete }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-1 text-xs text-gray-500 dark:text-gray-400">
-        <span>대표가격 {formatWon(competitor.repPrice)}</span>
+        <span className={priceMissing ? 'text-amber-600 dark:text-amber-400' : ''}>
+          대표가격 {priceMissing ? '미입력' : formatWon(competitor.repPrice)}
+        </span>
         <span>배달팁 {formatWon(competitor.deliveryTip)}</span>
         <span>쿠폰 {formatWon(competitor.coupon)}</span>
         <span>세트 {competitor.setCount}개</span>
@@ -209,8 +270,13 @@ export default function BenchmarkingPage() {
     setBenchmark(getBenchmark())
   }
 
+  const handleResolvePlaceUrl = (id, placeUrl) => {
+    updateCompetitor(id, { placeUrl })
+    setBenchmark(getBenchmark())
+  }
+
   const handleAddNearby = (places) => {
-    places.forEach((p) => addCompetitor({ group: 'local', name: p.name, address: p.address, category: p.category }))
+    places.forEach((p) => addCompetitor({ group: 'local', name: p.name, address: p.address, category: p.category, placeUrl: p.placeUrl }))
     setBenchmark(getBenchmark())
     setNearbyPickerOpen(false)
   }
@@ -296,7 +362,13 @@ export default function BenchmarkingPage() {
           ) : (
             <div className="space-y-2">
               {localCompetitors.map((c) => (
-                <CompetitorCard key={c.id} competitor={c} onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })} onDelete={handleDeleteCompetitor} />
+                <CompetitorCard
+                  key={c.id}
+                  competitor={c}
+                  onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })}
+                  onDelete={handleDeleteCompetitor}
+                  onResolved={(url) => handleResolvePlaceUrl(c.id, url)}
+                />
               ))}
             </div>
           )}
@@ -317,7 +389,13 @@ export default function BenchmarkingPage() {
           ) : (
             <div className="space-y-2">
               {nationalCompetitors.map((c) => (
-                <CompetitorCard key={c.id} competitor={c} onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })} onDelete={handleDeleteCompetitor} />
+                <CompetitorCard
+                  key={c.id}
+                  competitor={c}
+                  onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })}
+                  onDelete={handleDeleteCompetitor}
+                  onResolved={(url) => handleResolvePlaceUrl(c.id, url)}
+                />
               ))}
             </div>
           )}

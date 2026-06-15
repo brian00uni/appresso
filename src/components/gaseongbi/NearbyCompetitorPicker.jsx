@@ -83,7 +83,20 @@ export default function NearbyCompetitorPicker({ open, location, excludeNames = 
                     {p.category} · {p.address}
                   </div>
                 </div>
-                {p.distance != null && <span className="text-xs text-gray-400 dark:text-gray-500 flex-none">{p.distance}m</span>}
+                <div className="flex flex-none items-center gap-2">
+                  {p.distance != null && <span className="text-xs text-gray-400 dark:text-gray-500">{p.distance}m</span>}
+                  {p.placeUrl && (
+                    <a
+                      href={p.placeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-medium text-violet-500 hover:underline whitespace-nowrap"
+                    >
+                      가격 보기 ↗
+                    </a>
+                  )}
+                </div>
               </label>
             ))}
           </div>

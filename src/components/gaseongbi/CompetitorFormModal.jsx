@@ -63,7 +63,7 @@ export default function CompetitorFormModal({ open, initialValue, onSave, onClos
   }
 
   const handleSelectResult = (place) => {
-    setForm((f) => ({ ...f, name: place.name, address: place.address, category: place.category }))
+    setForm((f) => ({ ...f, name: place.name, address: place.address, category: place.category, placeUrl: place.placeUrl }))
     setSearchResults([])
     setSearchQuery('')
   }
