@@ -272,6 +272,16 @@
 }
 .is-ext-flow-btn:hover { border-color: var(--is-gold-border); }
 
+/* Google Flow 열기 — 강조 버튼 */
+.is-flow-open-btn {
+  width: 100%; margin-top: 10px;
+  background: var(--is-gold-dim); color: var(--is-gold);
+  border: 1.5px solid var(--is-gold); border-radius: var(--is-radius);
+  padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.is-flow-open-btn:hover { background: var(--is-gold); color: #000; }
+
 .is-ext-steps { list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .is-ext-step { display: flex; gap: 10px; align-items: flex-start; }
 .is-ext-step-num {

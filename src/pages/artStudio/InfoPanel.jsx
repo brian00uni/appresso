@@ -80,7 +80,7 @@ export default function InfoPanel() {
           ⬇️ 확장앱 다운로드 (.zip)
         </a>
         <p className="is-ext-note">※ 웹스토어 대신 직접 설치합니다. 받은 zip을 풀어 개발자 모드로 로드하세요.</p>
-        <button type="button" className="is-ext-flow-btn" onClick={() => window.open(FLOW_URL, '_blank', 'noopener')}>
+        <button type="button" className="is-flow-open-btn" onClick={() => window.open(FLOW_URL, '_blank', 'noopener')}>
           ↗ Google Flow 열기
         </button>
       </div>
