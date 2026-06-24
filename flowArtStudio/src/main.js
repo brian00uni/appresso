@@ -81,3 +81,16 @@ import{verifyLicense as e,pingServer as t,translateText as n}from"./modules/api.
     document.addEventListener("DOMContentLoaded", tryAuth);
   } catch (e) {}
 })();
+
+// ── 구 브랜드 파일명 접두어 방어: 옛 값(AiCrafter 등)이 보이면 ArtStudio_ 로 교정 ──
+(function () {
+  function fixPrefix() {
+    var fp = document.getElementById("file-prefix");
+    if (fp && /AiCrafter|Ai ?Crafter|크래프트|크래프터|크레프트|크레프터/i.test(fp.value)) {
+      fp.value = "ArtStudio_";
+      fp.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+  document.addEventListener("DOMContentLoaded", fixPrefix);
+  setTimeout(fixPrefix, 500);
+})();

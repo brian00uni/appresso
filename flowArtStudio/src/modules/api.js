@@ -1,6 +1,6 @@
 // Art Studio — 인증/번역 API (Supabase 기반)
 //
-// 기존 "AI크래프터" 라이선스 서버를 걷어내고, 본인 Supabase Edge Function 으로 검증한다.
+// 기존 라이선스 서버를 걷어내고, 본인 Supabase Edge Function 으로 검증한다.
 // 익스텐션은 별도 앱이므로 Supabase URL/anon 키를 직접 내장한다.
 // (anon 키는 공개용 키라 클라이언트 내장이 안전하다.)
 //
