@@ -78,21 +78,23 @@ export default function FortuneCookie() {
     >
       <div className="text-center max-w-md w-full">
         {/* 일반 | VIP 토글 */}
-        <div className="  inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6 hidden">
-          <button
-            onClick={() => selectMode(false)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${!vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
-              }`}
-          >
-            일반
-          </button>
-          <button
-            onClick={() => selectMode(true)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
-              }`}
-          >
-            VIP
-          </button>
+        <div className='hidden'>
+          <div className="  inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6 ">
+            <button
+              onClick={() => selectMode(false)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${!vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+                }`}
+            >
+              일반
+            </button>
+            <button
+              onClick={() => selectMode(true)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+                }`}
+            >
+              VIP
+            </button>
+          </div>
         </div>
 
         <h1 className="text-3xl font-bold text-gray-800 mb-2">🥠 포춘쿠키</h1>
@@ -156,34 +158,37 @@ export default function FortuneCookie() {
             {/* 시그니처 */}
             <p className="text-violet-600 text-sm font-semibold mt-4">{SIGNATURE}</p>
 
-            {/* 버튼1: 액션 CTA (쿠팡 비밀템 / 집밥템 / 블로그 놀이터) */}
-            {(() => {
-              const url = BUTTON_LINKS[fortune.button1] || ''
-              const cls =
-                'mt-6 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full block text-center hidden'
-              return url ? (
-                <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>
-                  {fortune.button1}
-                </a>
-              ) : (
-                <button type="button" className={cls}>
-                  {fortune.button1}
-                </button>
-              )
-            })()}
+            <div className='pt-5'>
 
-            {/* 쿠팡 파트너스 수수료 고지 (쿠팡 버튼일 때만) */}
-            {PARTNERS_NOTICE && COUPANG_BUTTONS.includes(fortune.button1) && (
-              <p className="text-gray-400 text-[11px] leading-snug mt-2">{PARTNERS_NOTICE}</p>
-            )}
+              {/* 버튼1: 액션 CTA (쿠팡 비밀템 / 집밥템 / 블로그 놀이터) */}
+              {(() => {
+                const url = BUTTON_LINKS[fortune.button1] || ''
+                const cls =
+                  'mt-6 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full block text-center hidden  bg-white border border-violet-200 text-violet-600 hover:bg-violet-50 '
+                return url ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>
+                    {fortune.button1}
+                  </a>
+                ) : (
+                  <button type="button" className={cls}>
+                    {fortune.button1}
+                  </button>
+                )
+              })()}
 
-            {/* 버튼2: 다시 까기 */}
-            <button
-              onClick={reset}
-              className="mt-2 btn bg-white border border-violet-200 text-violet-600 hover:bg-violet-50 text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full"
-            >
-              {fortune.button2 || '포춘쿠키 다시 까기'}
-            </button>
+              {/* 쿠팡 파트너스 수수료 고지 (쿠팡 버튼일 때만) */}
+              {PARTNERS_NOTICE && COUPANG_BUTTONS.includes(fortune.button1) && (
+                <p className="text-gray-400 text-[11px] leading-snug mt-2">{PARTNERS_NOTICE}</p>
+              )}
+
+              {/* 버튼2: 다시 까기 */}
+              <button
+                onClick={reset}
+                className="mt-2 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full"
+              >
+                {fortune.button2 || '포춘쿠키 다시 까기'}
+              </button>
+            </div>
           </div>
         </div>
       )}
