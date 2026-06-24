@@ -78,7 +78,7 @@ export default function FortuneCookie() {
     >
       <div className="text-center max-w-md w-full">
         {/* 일반 | VIP 토글 */}
-        <div className=" hidden inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6">
+        <div className="  inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6 hidden">
           <button
             onClick={() => selectMode(false)}
             className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${!vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
@@ -160,7 +160,7 @@ export default function FortuneCookie() {
             {(() => {
               const url = BUTTON_LINKS[fortune.button1] || ''
               const cls =
-                'mt-6 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full block text-center'
+                'mt-6 btn bg-violet-500 hover:bg-violet-600 text-white text-sm px-6 py-2.5 rounded-lg font-medium transition-colors w-full block text-center hidden'
               return url ? (
                 <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>
                   {fortune.button1}
