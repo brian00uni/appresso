@@ -19,26 +19,30 @@
   color: var(--is-text);
   font-family: 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
-  padding: 24px 16px;
+  padding: 60px 16px 24px;
 }
 
 .is-layout {
-  max-width: 1500px;
+  max-width: 1100px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 300px 400px 1fr;
-  gap: 20px;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
   align-items: start;
-}
-/* 중간 폭: Flow를 아래로 내림 (로그인 | 작업) + (Flow 전폭) */
-@media (max-width: 1180px) {
-  .is-layout { grid-template-columns: 300px 1fr; }
-  .is-flow { grid-column: 1 / -1; }
 }
 @media (max-width: 860px) {
   .is-layout { grid-template-columns: 1fr; }
-  .is-flow { grid-column: auto; }
 }
+
+/* 좌상단 고정 홈 링크 */
+.is-home-fixed {
+  position: fixed; top: 16px; left: 16px; z-index: 60;
+  font-size: 13px; color: var(--is-dim); text-decoration: none;
+  background: rgba(37, 37, 37, 0.85); border: 1px solid var(--is-border);
+  border-radius: var(--is-radius); padding: 6px 12px;
+  backdrop-filter: blur(4px);
+}
+.is-home-fixed:hover { color: var(--is-text); border-color: var(--is-gold-border); }
 
 /* ─── 좌측 로그인 영역 ─── */
 .is-login { position: sticky; top: 24px; }
@@ -111,7 +115,7 @@
   padding-bottom: 10px; margin-bottom: 12px;
   border-bottom: 1px solid var(--is-border);
 }
-.is-work-header-left { display: flex; align-items: center; gap: 8px; }
+.is-work-header-left { display: flex; align-items: center; gap: 8px; flex: 1; }
 .is-logo-mark { font-size: 20px; }
 .is-logo-mark-img { height: 24px; width: auto; object-fit: contain; border-radius: 4px; }
 .is-logo-text { font-size: 15px; font-weight: 700; color: var(--is-gold); letter-spacing: -0.3px; }
@@ -238,9 +242,21 @@
 }
 .is-flow-title { font-size: 15px; font-weight: 700; color: var(--is-gold); }
 
-.is-ext-badge { font-size: 11px; font-weight: 700; color: var(--is-dim); }
-.is-ext-badge.on { color: #22c55e; }
-.is-ext-badge.off { color: var(--is-danger); }
+.is-ext-badge {
+  display: block; width: 100%; text-align: center;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
+  padding: 9px 12px; border-radius: var(--is-radius);
+  background: var(--is-surface2); color: var(--is-dim);
+  border: 1px solid var(--is-border);
+}
+.is-ext-badge.on {
+  background: rgba(34, 197, 94, 0.15); color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.45);
+}
+.is-ext-badge.off {
+  background: rgba(239, 68, 68, 0.15); color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.45);
+}
 
 .is-ext-lead { font-size: 12px; color: var(--is-text); line-height: 1.8; margin-bottom: 14px; }
 .is-ext-lead strong { color: var(--is-gold); }
@@ -266,6 +282,45 @@
 }
 .is-ext-step-title { font-size: 13px; font-weight: 600; color: var(--is-text); }
 .is-ext-step-desc { font-size: 11px; color: var(--is-dim); line-height: 1.6; margin-top: 2px; }
+
+/* 안내(소개) 패널 */
+.is-intro-title { font-size: 18px; font-weight: 800; color: var(--is-text); margin-bottom: 8px; letter-spacing: -0.3px; }
+.is-intro-desc { font-size: 13px; color: var(--is-dim); line-height: 1.8; margin-bottom: 14px; }
+.is-intro-desc strong { color: var(--is-gold); }
+
+.is-feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 520px) { .is-feature-grid { grid-template-columns: 1fr; } }
+.is-feature {
+  background: var(--is-surface2); border: 1px solid var(--is-border);
+  border-radius: var(--is-radius); padding: 12px;
+}
+.is-feature-icon { font-size: 22px; margin-bottom: 6px; }
+.is-feature-title { font-size: 13px; font-weight: 700; color: var(--is-text); margin-bottom: 3px; }
+.is-feature-desc { font-size: 11px; color: var(--is-dim); line-height: 1.6; }
+
+/* 가이드 모달 */
+.is-guide-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.is-guide-modal {
+  width: 100%; max-width: 860px; height: 88vh;
+  background: var(--is-surface); border: 1px solid var(--is-border);
+  border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+}
+.is-guide-modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--is-border);
+  font-size: 14px; font-weight: 700; color: var(--is-gold);
+}
+.is-guide-close {
+  background: none; border: none; color: var(--is-dim);
+  font-size: 16px; cursor: pointer; line-height: 1; padding: 4px 8px;
+}
+.is-guide-close:hover { color: var(--is-text); }
+.is-guide-frame { flex: 1; width: 100%; border: none; background: #fff; }
 
 /* 익스텐션 전송 버튼 */
 .is-send-ext {

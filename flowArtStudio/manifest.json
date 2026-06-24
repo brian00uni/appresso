@@ -36,7 +36,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["src/사용자_가이드.html", "src/asset/4dollors.mp3", "build/*"],
+      "resources": ["src/guide.html", "src/asset/4dollors.mp3", "build/*"],
       "matches": ["<all_urls>"]
     }
   ],
