@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Transition from '../utils/Transition';
+import { useAuthStore } from '../stores/authStore';
 
 import UserAvatar from '../images/user-avatar-32.png';
 
@@ -9,6 +10,16 @@ function DropdownProfile({
 }) {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const signOut = useAuthStore((s) => s.signOut);
+  const displayName = user?.email ?? '사용자';
+
+  async function handleSignOut() {
+    setDropdownOpen(false);
+    await signOut();
+    navigate('/', { replace: true });
+  }
 
   const trigger = useRef(null);
   const dropdown = useRef(null);
@@ -45,7 +56,7 @@ function DropdownProfile({
       >
         <img className="w-8 h-8 rounded-full" src={UserAvatar} width="32" height="32" alt="User" />
         <div className="flex items-center truncate">
-          <span className="truncate ml-2 text-sm font-medium text-gray-600 dark:text-gray-100 group-hover:text-gray-800 dark:group-hover:text-white">Acme Inc.</span>
+          <span className="truncate ml-2 text-sm font-medium text-gray-600 dark:text-gray-100 group-hover:text-gray-800 dark:group-hover:text-white max-w-[140px]">{displayName}</span>
           <svg className="w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500" viewBox="0 0 12 12">
             <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
           </svg>
@@ -68,27 +79,27 @@ function DropdownProfile({
           onBlur={() => setDropdownOpen(false)}
         >
           <div className="pt-0.5 pb-2 px-3 mb-1 border-b border-gray-200 dark:border-gray-700/60">
-            <div className="font-medium text-gray-800 dark:text-gray-100">Acme Inc.</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 italic">Administrator</div>
+            <div className="font-medium text-gray-800 dark:text-gray-100 truncate">{displayName}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 italic">로그인됨</div>
           </div>
           <ul>
             <li>
               <Link
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3"
-                to="/settings"
+                to="/dashboard/profile"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                Settings
+                프로필 설정
               </Link>
             </li>
             <li>
-              <Link
-                className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3"
-                to="/signin"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+              <button
+                type="button"
+                className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3 w-full text-left"
+                onClick={handleSignOut}
               >
-                Sign Out
-              </Link>
+                로그아웃
+              </button>
             </li>
           </ul>
         </div>

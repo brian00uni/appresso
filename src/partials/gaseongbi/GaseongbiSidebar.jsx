@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { getStoreInfo } from '../../lib/gaseongbi/storage'
+import { useAuthStore } from '../../stores/authStore'
 
 const NAV_ITEMS = [
   {
@@ -82,6 +83,7 @@ export default function GaseongbiSidebar({ sidebarOpen, setSidebarOpen }) {
   const sidebar = useRef(null)
   const trigger = useRef(null)
   const storeInfo = getStoreInfo()
+  const isAdmin = useAuthStore((s) => s.profile?.role) === 'admin'
 
   useEffect(() => {
     const clickHandler = ({ target }) => {
@@ -167,6 +169,28 @@ export default function GaseongbiSidebar({ sidebarOpen, setSidebarOpen }) {
               </NavLink>
             </li>
           ))}
+
+          {/* 관리자 전용 */}
+          {isAdmin && (
+            <li>
+              <NavLink
+                to="/dashboard/members"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-violet-500/15 text-violet-400'
+                      : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'
+                  }`
+                }
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 16 16">
+                  <path d="M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1 14a4.5 4.5 0 0 1 9 0H1Zm10.5-7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-.5 1.5c2.1 0 3.8 1.5 4 3.5h-3.2a5.99 5.99 0 0 0-1.6-3.4c.26-.06.53-.1.8-.1Z" />
+                </svg>
+                <span>회원관리</span>
+              </NavLink>
+            </li>
+          )}
         </ul>
 
         {/* 매장 카드 */}

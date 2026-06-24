@@ -30,6 +30,8 @@ import ProfitReportDetailPage from './pages/dashboard/gaseongbi/ProfitReportDeta
 import BenchmarkingPage from './pages/dashboard/gaseongbi/BenchmarkingPage'
 import AdAnalysisPage from './pages/dashboard/gaseongbi/AdAnalysisPage'
 import SettingsPage from './pages/dashboard/gaseongbi/SettingsPage'
+import ProfilePage from './pages/dashboard/ProfilePage'
+import MembersPage from './pages/dashboard/MembersPage'
 
 function AppRoutes() {
   useAuth()
@@ -63,6 +65,8 @@ function AppRoutes() {
         <Route path="ads" element={<AdAnalysisPage />} />
         <Route path="benchmark" element={<BenchmarkingPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="members" element={<MembersPage />} />
         <Route path="apps/fortune-cookie" element={<FortuneCookie />} />
         <Route path="apps/lotto" element={<LottoRecommend />} />
       </Route>
