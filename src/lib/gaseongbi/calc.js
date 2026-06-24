@@ -59,6 +59,19 @@ export function calcMargin({
   }
 }
 
+// 보고서 2단 구조 — 월 예상 시뮬레이션 (실제 월매출 아님: 사용자가 입력한 예상 판매수량 기준)
+//  단위공헌이익 = 판매가 - 변동원가(식재료+포장+수수료+배달부담+할인부담 등, 광고/고정비 제외)
+//  → 마진계산기에서는 result.profitAfterCoupon 을 단위공헌이익으로 전달한다.
+export function calcContributionScenario({ unitContribution = 0, salePrice = 0, expectedQty = 0, monthlyFixedCost = 0 }) {
+  const unitContributionRate = salePrice > 0 ? unitContribution / salePrice : 0
+  const expectedRevenue = salePrice * expectedQty
+  const expectedContribution = unitContribution * expectedQty
+  const operatingProfit = expectedContribution - monthlyFixedCost
+  // 단위공헌이익이 0 이하이면 고정비를 회수할 수 없으므로 손익분기 계산 불가
+  const breakEvenQty = unitContribution > 0 ? Math.ceil(monthlyFixedCost / unitContribution) : null
+  return { unitContribution, unitContributionRate, expectedRevenue, expectedContribution, operatingProfit, breakEvenQty }
+}
+
 export function getRating(netProfit, marginRate) {
   if (netProfit <= 0) return 'red'
   if (marginRate < 0.1) return 'yellow'

@@ -78,20 +78,18 @@ export default function FortuneCookie() {
     >
       <div className="text-center max-w-md w-full">
         {/* 일반 | VIP 토글 */}
-        <div className="inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6">
+        <div className=" hidden inline-flex items-center bg-white/40 backdrop-blur rounded-full p-1 mb-6">
           <button
             onClick={() => selectMode(false)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
-              !vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
-            }`}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${!vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+              }`}
           >
             일반
           </button>
           <button
             onClick={() => selectMode(true)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
-              vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
-            }`}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${vip ? 'bg-white text-gray-800 shadow' : 'text-gray-700 hover:text-gray-900'
+              }`}
           >
             VIP
           </button>
@@ -111,9 +109,8 @@ export default function FortuneCookie() {
           <button
             onClick={crack}
             disabled={spinning}
-            className={`cursor-pointer select-none transition-transform duration-300 ${
-              spinning ? 'animate-bounce' : 'hover:scale-105 active:scale-95'
-            }`}
+            className={`cursor-pointer select-none transition-transform duration-300 ${spinning ? 'animate-bounce' : 'hover:scale-105 active:scale-95'
+              }`}
           >
             <img
               key={cookieImg}

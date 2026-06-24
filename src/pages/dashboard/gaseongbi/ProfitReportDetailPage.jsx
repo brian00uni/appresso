@@ -112,11 +112,11 @@ function ProfitReportDetailContent() {
             <div className="text-2xl font-bold text-gray-800">{formatPercent(avgMarginRate)}</div>
           </div>
           <div className={CARD_CLASS}>
-            <div className="text-sm text-gray-500 mb-1">이번 달 예상 매출</div>
+            <div className="text-sm text-gray-500 mb-1">등록 메뉴 예상 매출</div>
             <div className="text-2xl font-bold text-gray-800">{formatWon(monthlyRevenue)}</div>
           </div>
           <div className={CARD_CLASS}>
-            <div className="text-sm text-gray-500 mb-1">이번 달 예상 순이익</div>
+            <div className="text-sm text-gray-500 mb-1">등록 메뉴 예상 손익</div>
             <div className={`text-2xl font-bold ${monthlyNetProfit < 0 ? 'text-red-600' : 'text-gray-800'}`}>{formatWon(monthlyNetProfit)}</div>
           </div>
         </div>
@@ -237,7 +237,7 @@ function ProfitReportDetailContent() {
             <p className="text-sm text-gray-500">설정에서 광고비를 입력하면 회수 가능 여부를 분석해 드려요.</p>
           ) : (
             <p className="text-sm text-gray-600">
-              이번 달 예상 광고비 {formatWon(monthlyAdCost)} 기준, 전체 {total}개 메뉴 중{' '}
+              등록 메뉴 예상 광고비 {formatWon(monthlyAdCost)} 기준, 전체 {total}개 메뉴 중{' '}
               <span className="font-semibold text-green-600">{recoveryCount}개</span>는 광고비 회수가 가능하고,{' '}
               <span className="font-semibold text-red-600">{total - recoveryCount}개</span>는 광고비를 빼면 적자예요.
             </p>

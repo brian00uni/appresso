@@ -114,6 +114,7 @@ export const DEFAULT_SETTINGS = {
     ownerCoupon: 0,
     referencePlatform: 'baemin',
     monthlyUnitsPerMenu: 30,
+    monthlyFixedCost: 0,
   },
 }
 

@@ -132,7 +132,7 @@ export function getMonthlySummary(aggregate) {
     return lines
   }
 
-  lines.push(`이번 달 예상 순이익은 ${monthlyNetProfit.toLocaleString('ko-KR')}원, 평균 마진율은 ${(avgMarginRate * 100).toFixed(1)}%예요.`)
+  lines.push(`등록 메뉴 기준 예상 손익은 ${monthlyNetProfit.toLocaleString('ko-KR')}원, 평균 마진율은 ${(avgMarginRate * 100).toFixed(1)}%예요.`)
 
   if (red > 0) {
     lines.push(`위험 메뉴가 ${red}개 있어요. 가격/원가/쿠폰 조정이 필요해요.`)

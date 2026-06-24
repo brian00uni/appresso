@@ -49,7 +49,12 @@ export default function ProfitReportPage() {
   const menus = useMemo(() => getMenus(), [])
 
   const aggregate = useMemo(() => aggregateMenus(menus, settings), [menus, settings])
-  const { total, green, yellow, red, avgMarginRate, monthlyNetProfit, monthlyAdCost, riskTop5, priceUpList, couponDownList, adWarningList } = aggregate
+  const { total, green, yellow, red, avgMarginRate, monthlyNetProfit, monthlyAdCost, riskTop5, priceUpList, couponDownList, adWarningList, items, monthlyUnits } = aggregate
+
+  // 보고서 2단 구조: 월 예상 영업이익 = 예상 월 공헌이익(단위 공헌이익 합 × 예상수량) − 월 고정비
+  const monthlyFixedCost = settings.defaults.monthlyFixedCost || 0
+  const monthlyContribution = items.reduce((s, i) => s + i.result.profitAfterCoupon, 0) * monthlyUnits
+  const operatingProfit = monthlyContribution - monthlyFixedCost
 
   useEffect(() => {
     if (total === 0) return
@@ -72,7 +77,7 @@ export default function ProfitReportPage() {
   if (total === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">손익리포트</h1>
+        <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">등록 메뉴 손익 리포트</h1>
         <div className={`${CARD_CLASS} text-center py-12 text-gray-500 dark:text-gray-400`}>
           등록된 메뉴가 없어요. 메뉴관리에서 메뉴를 먼저 등록해주세요.
         </div>
@@ -84,7 +89,7 @@ export default function ProfitReportPage() {
     <div className="space-y-6">
       <div className="sm:flex sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">손익리포트</h1>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">등록 메뉴 손익 리포트</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {getPlatformDefaults(aggregate.referencePlatform, settings).name} 기준 · 메뉴당 월 {aggregate.monthlyUnits}개 판매 가정
           </p>
@@ -107,20 +112,57 @@ export default function ProfitReportPage() {
         </div>
       </div>
 
+      {/* 추정 리포트 안내 */}
+      <div className="flex items-start justify-between gap-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl px-4 py-3">
+        <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
+          <span className="flex-none">ℹ️</span>
+          <div>
+            <p className="font-semibold">사장님 입력값 및 정산 입력 기준 추정 리포트입니다.</p>
+            <p className="text-xs mt-0.5 opacity-90">월간 수치는 입력한 판매/식재료/포장비/배달비/광고비/쿠폰 정보 또는 정산 입력 기준으로 산출됩니다.</p>
+          </div>
+        </div>
+        <Link to="/dashboard/settings" className="flex-none text-xs font-medium text-blue-600 dark:text-blue-300 hover:underline whitespace-nowrap">입력값 관리 ›</Link>
+      </div>
+
       {/* 요약 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <SummaryCard icon="pie" label="총 메뉴 수" value={`${total}개`} tone="violet" />
-        <SummaryCard icon="money" label="안전 메뉴" value={`${green}개`} tone="green" />
-        <SummaryCard icon="warning" label="주의 메뉴" value={`${yellow}개`} tone="yellow" />
-        <SummaryCard icon="warning" label="위험 메뉴" value={`${red}개`} tone="red" />
-        <SummaryCard icon="pie" label="평균 마진율" value={formatPercent(avgMarginRate)} tone="blue" />
+        <SummaryCard icon="pie" label="총 메뉴 수" value={`${total}개`} sub="등록 메뉴" tone="violet" />
+        <SummaryCard icon="money" label="안전 메뉴" value={`${green}개`} sub={`전체의 ${formatPercent(total ? green / total : 0, 0)}`} tone="green" />
+        <SummaryCard icon="warning" label="주의 메뉴" value={`${yellow}개`} sub={`전체의 ${formatPercent(total ? yellow / total : 0, 0)}`} tone="yellow" />
+        <SummaryCard icon="warning" label="위험 메뉴" value={`${red}개`} sub={`전체의 ${formatPercent(total ? red / total : 0, 0)}`} tone="red" />
+        <SummaryCard icon="pie" label="평균 마진율" value={formatPercent(avgMarginRate)} sub="전체 메뉴 평균" tone="blue" />
         <SummaryCard
           icon="money"
-          label="이번 달 예상 순이익"
+          label="추정 월 실손익"
           value={formatWon(monthlyNetProfit)}
+          sub="등록 메뉴 기준 (추정)"
           valueClassName={monthlyNetProfit < 0 ? 'text-red-600 dark:text-red-400' : ''}
           tone={monthlyNetProfit >= 0 ? 'green' : 'red'}
         />
+      </div>
+
+      {/* 월 예상 영업이익 (보고서 2단 구조: 고정비 차감) */}
+      <div className={CARD_CLASS}>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">월 예상 영업이익 <span className="text-xs font-normal text-gray-400">(고정비 차감 기준)</span></h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">메뉴당 월 {monthlyUnits}개 예상 판매수량과 입력한 월 고정비 기준의 추정입니다. 실제 월매출이 아닙니다.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-4 py-3">
+            <div className="text-xs text-gray-500 dark:text-gray-400">예상 월 공헌이익</div>
+            <div className="text-lg font-bold text-gray-800 dark:text-gray-100">{formatWon(monthlyContribution)}</div>
+          </div>
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-4 py-3">
+            <div className="text-xs text-gray-500 dark:text-gray-400">월 고정비</div>
+            <div className="text-lg font-bold text-gray-800 dark:text-gray-100">{formatWon(monthlyFixedCost)}</div>
+            <Link to="/dashboard/settings" className="text-xs text-violet-500 hover:underline">설정에서 변경 ›</Link>
+          </div>
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-4 py-3">
+            <div className="text-xs text-gray-500 dark:text-gray-400">예상 월 영업이익</div>
+            <div className={`text-lg font-bold ${operatingProfit < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>{formatWon(operatingProfit)}</div>
+          </div>
+        </div>
+        {monthlyFixedCost === 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">※ 설정에서 월 고정비를 입력하면 손익분기와 영업이익이 더 정확해집니다.</p>
+        )}
       </div>
 
       {/* 월간 손익 추이 */}

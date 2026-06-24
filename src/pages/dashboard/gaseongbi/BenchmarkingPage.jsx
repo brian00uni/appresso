@@ -1,507 +1,268 @@
 import React, { useMemo, useState } from 'react'
-import {
-  getBenchmark,
-  saveMyStore,
-  addCompetitor,
-  updateCompetitor,
-  deleteCompetitor,
-  getBenchmarkHistory,
-  addBenchmarkSnapshot,
-  getStoreInfo,
-} from '../../../lib/gaseongbi/storage'
+import { getStoreInfo } from '../../../lib/gaseongbi/storage'
 import { formatWon } from '../../../lib/gaseongbi/calc'
-import { searchPlaces, hasKakaoKey } from '../../../lib/gaseongbi/kakaoLocal'
-import BenchmarkRadarChart from '../../../components/gaseongbi/BenchmarkRadarChart'
-import MyStoreFormModal from '../../../components/gaseongbi/MyStoreFormModal'
-import CompetitorFormModal from '../../../components/gaseongbi/CompetitorFormModal'
-import NearbyCompetitorPicker from '../../../components/gaseongbi/NearbyCompetitorPicker'
+import {
+  EMPTY_BENCHMARK_INPUT,
+  SAMPLE_BENCHMARK_INPUT,
+  buildBenchmarkPrompt,
+  fetchBenchmarkResearch,
+  parseBenchmarkResult,
+  getBenchmarkDemoReport,
+} from '../../../lib/gaseongbi/benchmark'
 import SummaryCard from '../../../components/gaseongbi/SummaryCard'
+import BenchmarkRadarChart from '../../../components/gaseongbi/BenchmarkRadarChart'
 
 const CARD_CLASS = 'bg-white dark:bg-gray-800 shadow-xs rounded-xl border border-gray-100 dark:border-gray-700/60 p-5'
+const inputClass =
+  'w-full px-3 py-2 text-sm bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700/60 text-gray-800 dark:text-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all'
 
-const METRICS = [
-  { key: 'price', label: '가격경쟁력' },
-  { key: 'deliveryTip', label: '배달팁 경쟁력' },
-  { key: 'coupon', label: '쿠폰전략' },
-  { key: 'setCount', label: '세트다양성' },
-  { key: 'photo', label: '사진경쟁력' },
-  { key: 'review', label: '리뷰반응' },
-  { key: 'conversion', label: '주문전환율' },
-]
-
-const FIX_TEMPLATES = {
-  price: {
-    issue: '대표 메뉴 가격이 경쟁사보다 높은 편이에요.',
-    tip: '가격을 소폭 조정하거나 구성을 다이어트해서 가격 경쟁력을 확보해보세요.',
-    effect: '가격 경쟁력이 개선되면 신규 고객 유입이 늘어날 수 있어요.',
-  },
-  deliveryTip: {
-    issue: '배달팁이 경쟁사보다 높은 편이에요.',
-    tip: '배달팁을 낮추거나 일정 금액 이상 무료배달 정책을 검토해보세요.',
-    effect: '배달팁을 낮추면 주문 전환율이 올라갈 수 있어요.',
-  },
-  coupon: {
-    issue: '쿠폰 비용 부담이 경쟁사보다 큰 편이에요.',
-    tip: '쿠폰 금액을 줄이고 대신 리뷰 이벤트 등 다른 혜택으로 전환해보세요.',
-    effect: '쿠폰 비용을 줄이면 메뉴별 순이익이 개선돼요.',
-  },
-  setCount: {
-    issue: '세트 메뉴 구성이 경쟁사보다 부족해요.',
-    tip: '인기 메뉴를 묶은 세트 메뉴를 추가해 객단가를 높여보세요.',
-    effect: '세트 메뉴가 늘어나면 평균 주문 금액이 올라갈 수 있어요.',
-  },
-  photo: {
-    issue: '메뉴 사진 경쟁력이 경쟁사보다 낮아요.',
-    tip: '대표 메뉴 사진을 전문가 스타일로 교체해보세요.',
-    effect: '사진 품질이 좋아지면 클릭률과 전환율이 함께 오를 수 있어요.',
-  },
-  review: {
-    issue: '리뷰 이벤트 반응이 경쟁사보다 약해요.',
-    tip: '리뷰 작성 시 추가 혜택을 주는 이벤트를 운영해보세요.',
-    effect: '리뷰가 쌓이면 신규 고객의 신뢰도와 전환율이 올라가요.',
-  },
-  conversion: {
-    issue: '주문 전환율이 경쟁사보다 낮은 편이에요.',
-    tip: '노출 순서, 대표 사진, 첫 메뉴 구성을 점검해보세요.',
-    effect: '전환율이 개선되면 같은 노출로도 더 많은 주문을 받을 수 있어요.',
-  },
-}
-
-function clamp(v) {
-  return Math.max(0, Math.min(100, v || 0))
-}
-
-function computeScores(store, refMax) {
-  const priceScore = refMax.repPrice > 0 ? clamp(100 - (store.repPrice / refMax.repPrice) * 100) : 50
-  const deliveryScore = refMax.deliveryTip > 0 ? clamp(100 - (store.deliveryTip / refMax.deliveryTip) * 100) : 50
-  const couponScore = refMax.coupon > 0 ? clamp(100 - (store.coupon / refMax.coupon) * 100) : 50
-  const setCountScore = refMax.setCount > 0 ? clamp((store.setCount / refMax.setCount) * 100) : 0
-  const photoScore = clamp(store.photoStyle)
-  const reviewScore = clamp((store.reviewEvent + store.reviewScore * 20) / 2)
-  const conversionScore = clamp(store.conversionRate)
-  return {
-    price: priceScore,
-    deliveryTip: deliveryScore,
-    coupon: couponScore,
-    setCount: setCountScore,
-    photo: photoScore,
-    review: reviewScore,
-    conversion: conversionScore,
-  }
-}
-
-function avgScores(list) {
-  if (!list || list.length === 0) return null
-  const sums = {}
-  METRICS.forEach((m) => (sums[m.key] = 0))
-  list.forEach((scores) => METRICS.forEach((m) => (sums[m.key] += scores[m.key])))
-  const result = {}
-  METRICS.forEach((m) => (result[m.key] = sums[m.key] / list.length))
-  return result
-}
-
-function avgOf(scores) {
-  if (!scores) return null
-  return METRICS.reduce((sum, m) => sum + scores[m.key], 0) / METRICS.length
-}
-
-// 가게명+주소로 카카오맵 일반 검색 링크 (placeUrl 조회 실패 시 폴백)
-function kakaoSearchFallback(competitor) {
-  const q = [competitor.name, competitor.address].filter(Boolean).join(' ').trim()
-  return q ? `https://map.kakao.com/?q=${encodeURIComponent(q)}` : 'https://map.kakao.com'
-}
-
-function CompetitorCard({ competitor, onEdit, onDelete, onResolved }) {
-  const priceMissing = !competitor.repPrice
-
-  // 모달 검색과 동일하게: placeUrl이 있으면 place.map 상세로, 없으면 카카오로 조회해 place.map 상세로 연결.
-  const handlePriceClick = async (e) => {
-    e.preventDefault()
-    // noopener를 features로 주면 window.open이 null을 반환해 탭 이동이 안 되므로 생략한다.
-    const win = window.open('', '_blank')
-    let url = competitor.placeUrl
-    if (!url && hasKakaoKey()) {
-      // 주소 포함 검색 → 실패 시 가게명만으로 재시도 (place.map 상세 링크 확보)
-      const queries = [[competitor.name, competitor.address].filter(Boolean).join(' '), competitor.name].filter(Boolean)
-      for (const q of queries) {
-        try {
-          const results = await searchPlaces(q)
-          if (results[0]?.placeUrl) {
-            url = results[0].placeUrl
-            break
-          }
-        } catch {
-          // 다음 쿼리로 폴백
-        }
-      }
-      // 찾은 상세 링크는 저장해 다음부터 즉시 연결되도록 한다.
-      if (url && onResolved) onResolved(url)
-    }
-    if (!url) url = kakaoSearchFallback(competitor)
-    if (win) win.location.href = url
-  }
-  return (
-    <div
-      className={`rounded-lg p-3 ${
-        priceMissing
-          ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30'
-          : 'bg-gray-50 dark:bg-gray-900/40'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-medium text-gray-800 dark:text-gray-100 truncate">{competitor.name}</span>
-            {priceMissing && (
-              <span className="flex-none text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
-                가격 미입력
-              </span>
-            )}
-          </div>
-          {(competitor.category || competitor.address) && (
-            <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
-              {[competitor.category, competitor.address].filter(Boolean).join(' · ')}
-            </div>
-          )}
-          {competitor.name && (
-            <a
-              href={competitor.placeUrl || kakaoSearchFallback(competitor)}
-              onClick={handlePriceClick}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-0.5 text-xs font-medium text-violet-500 hover:underline"
-            >
-              가격 보기 ↗
-            </a>
-          )}
-        </div>
-        <div className="flex gap-1 text-xs flex-none">
-          <button onClick={() => onEdit(competitor)} className="text-violet-500 hover:underline">
-            수정
-          </button>
-          <button onClick={() => onDelete(competitor.id)} className="text-red-500 hover:underline">
-            삭제
-          </button>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-1 text-xs text-gray-500 dark:text-gray-400">
-        <span className={priceMissing ? 'text-amber-600 dark:text-amber-400' : ''}>
-          대표가격 {priceMissing ? '미입력' : formatWon(competitor.repPrice)}
-        </span>
-        <span>배달팁 {formatWon(competitor.deliveryTip)}</span>
-        <span>쿠폰 {formatWon(competitor.coupon)}</span>
-        <span>세트 {competitor.setCount}개</span>
-        <span>리뷰 {competitor.reviewScore}점</span>
-        <span>전환율 {competitor.conversionRate}%</span>
-      </div>
-    </div>
-  )
+const VERDICT = {
+  high: { label: '높음', cls: 'text-red-600 dark:text-red-400' },
+  low: { label: '낮음', cls: 'text-red-600 dark:text-red-400' },
+  mid: { label: '보통', cls: 'text-yellow-600 dark:text-yellow-400' },
+  good: { label: '우수', cls: 'text-green-600 dark:text-green-400' },
+  check: { label: '확인 필요', cls: 'text-gray-500 dark:text-gray-400' },
 }
 
 export default function BenchmarkingPage() {
-  const [benchmark, setBenchmark] = useState(() => getBenchmark())
-  const [history, setHistory] = useState(() => getBenchmarkHistory())
-  const [storeInfo] = useState(() => getStoreInfo())
-  const [myStoreModalOpen, setMyStoreModalOpen] = useState(false)
-  const [competitorModal, setCompetitorModal] = useState({ open: false, editing: null })
-  const [nearbyPickerOpen, setNearbyPickerOpen] = useState(false)
+  const storeInfo = getStoreInfo()
+  const [input, setInput] = useState(() => ({
+    ...SAMPLE_BENCHMARK_INPUT,
+    storeName: storeInfo.storeName && storeInfo.storeName !== '내 가게' ? storeInfo.storeName : SAMPLE_BENCHMARK_INPUT.storeName,
+    region: storeInfo.location || SAMPLE_BENCHMARK_INPUT.region,
+  }))
+  const [loading, setLoading] = useState(false)
+  // 초기에는 예시 리포트를 바로 표시 (샘플 디자인과 동일)
+  const [report, setReport] = useState(() => getBenchmarkDemoReport())
 
-  const { myStore, competitors } = benchmark
-  const localCompetitors = competitors.filter((c) => c.group === 'local')
-  const nationalCompetitors = competitors.filter((c) => c.group === 'national')
+  const handleChange = (key) => (e) => setInput((prev) => ({ ...prev, [key]: e.target.value }))
 
-  const refMax = useMemo(() => {
-    const all = [myStore, ...competitors]
-    return {
-      repPrice: Math.max(0, ...all.map((s) => s.repPrice || 0)),
-      deliveryTip: Math.max(0, ...all.map((s) => s.deliveryTip || 0)),
-      coupon: Math.max(0, ...all.map((s) => s.coupon || 0)),
-      setCount: Math.max(0, ...all.map((s) => s.setCount || 0)),
-    }
-  }, [myStore, competitors])
-
-  const myScores = useMemo(() => computeScores(myStore, refMax), [myStore, refMax])
-  const localScores = useMemo(() => avgScores(localCompetitors.map((c) => computeScores(c, refMax))), [localCompetitors, refMax])
-  const nationalScores = useMemo(() => avgScores(nationalCompetitors.map((c) => computeScores(c, refMax))), [nationalCompetitors, refMax])
-  const overallAvg = useMemo(() => avgScores([localScores, nationalScores].filter(Boolean)), [localScores, nationalScores])
-
-  const series = useMemo(() => {
-    const s = [{ label: '우리 가게', data: METRICS.map((m) => myScores[m.key]) }]
-    if (localScores) s.push({ label: '지역 평균', data: METRICS.map((m) => localScores[m.key]) })
-    if (nationalScores) s.push({ label: '전국 평균', data: METRICS.map((m) => nationalScores[m.key]) })
-    return s
-  }, [myScores, localScores, nationalScores])
-
-  const checklist = useMemo(() => {
-    return METRICS.map((m) => {
-      const my = myScores[m.key]
-      const base = overallAvg ? overallAvg[m.key] : null
-      const delta = base != null ? my - base : null
-      const arrow = delta == null ? '-' : delta > 5 ? '▲' : delta < -5 ? '▼' : '-'
-      return { ...m, my, local: localScores ? localScores[m.key] : null, national: nationalScores ? nationalScores[m.key] : null, delta, arrow }
-    })
-  }, [myScores, localScores, nationalScores, overallAvg])
-
-  const topFixes = useMemo(() => {
-    return checklist
-      .filter((c) => c.delta != null)
-      .sort((a, b) => a.delta - b.delta)
-      .slice(0, 3)
-  }, [checklist])
-
-  const handleSaveMyStore = (form) => {
-    saveMyStore(form)
-    setBenchmark(getBenchmark())
-    setMyStoreModalOpen(false)
-  }
-
-  const handleSaveCompetitor = (form) => {
-    if (form.id) {
-      updateCompetitor(form.id, form)
-    } else {
-      addCompetitor(form)
-    }
-    setBenchmark(getBenchmark())
-    setCompetitorModal({ open: false, editing: null })
-  }
-
-  const handleDeleteCompetitor = (id) => {
-    deleteCompetitor(id)
-    setBenchmark(getBenchmark())
-  }
-
-  const handleResolvePlaceUrl = (id, placeUrl) => {
-    updateCompetitor(id, { placeUrl })
-    setBenchmark(getBenchmark())
-  }
-
-  const handleAddNearby = (places) => {
-    places.forEach((p) => addCompetitor({ group: 'local', name: p.name, address: p.address, category: p.category, placeUrl: p.placeUrl }))
-    setBenchmark(getBenchmark())
-    setNearbyPickerOpen(false)
-  }
-
-  const handleSaveSnapshot = () => {
-    const avg = (s) => (s != null ? avgOf(s)?.toFixed(1) : null)
-    const parts = [`우리가게 평균 ${avg(myScores)}점`]
-    if (localScores) parts.push(`지역평균 ${avg(localScores)}점`)
-    if (nationalScores) parts.push(`전국평균 ${avg(nationalScores)}점`)
-    addBenchmarkSnapshot(parts.join(' · '))
-    setHistory(getBenchmarkHistory())
+  const handleGenerate = async () => {
+    setLoading(true)
+    const prompt = buildBenchmarkPrompt(input)
+    const response = await fetchBenchmarkResearch(prompt)
+    setReport(parseBenchmarkResult(response))
+    setLoading(false)
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">벤치마킹</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">우리 가게와 경쟁 가게의 운영 전략을 비교해보세요.</p>
+        <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
+          벤치마킹 <span className="align-middle text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-500">AI 리포트</span>
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">우리 가게를 잘하는 가게들과 비교하고, 개선 포인트를 찾아보세요.</p>
       </div>
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard
-          icon="location"
-          label="우리 가게 위치"
-          value={storeInfo.location || '위치 미입력'}
-          sub={storeInfo.repCategory || '설정에서 매장 정보를 입력해보세요'}
-          tone="violet"
-        />
-        <SummaryCard icon="group" label="지역 비교" value={`${localCompetitors.length}곳`} sub="반경 내 경쟁 가게" tone="blue" />
-        <SummaryCard icon="map" label="전국 참고" value={`${nationalCompetitors.length}곳`} sub="유사 업종 기준" tone="green" />
-        <SummaryCard icon="target" label="오늘 고칠 포인트" value={`${topFixes.length}개`} sub="우선순위 개선 항목" tone="yellow" />
+        <SummaryCard icon="location" label="우리 가게 위치" value={report.summary.location} sub={report.summary.locationDesc} tone="violet" />
+        <SummaryCard icon="group" label={`지역 비교 ${report.summary.localCount}곳`} value={report.summary.localArea} sub="반경 1.5km 기준" tone="blue" />
+        <SummaryCard icon="map" label={`전국 참고 ${report.summary.nationalCount}곳`} value="인기 상위 매장" sub="유사 업종 기준" tone="green" />
+        <SummaryCard icon="target" label={`오늘 고칠 포인트 ${report.summary.fixCount}개`} value="우선순위 개선 항목" sub="아래 상세 제안 확인" tone="yellow" />
       </div>
 
-      {competitors.length === 0 && (
-        <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 text-sm text-violet-700 dark:text-violet-300">
-          아직 비교할 가게 정보가 없어요. 스크래핑 등 자동 수집은 제공되지 않으니, 비교할 가게 정보를 직접 입력해주세요.
+      {/* 입력 + 생성 */}
+      <div className={CARD_CLASS}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          <Field label="우리 가게" value={input.storeName} onChange={handleChange('storeName')} placeholder={SAMPLE_BENCHMARK_INPUT.storeName} />
+          <Field label="지역" value={input.region} onChange={handleChange('region')} placeholder={SAMPLE_BENCHMARK_INPUT.region} />
+          <Field label="카테고리" value={input.category} onChange={handleChange('category')} placeholder={SAMPLE_BENCHMARK_INPUT.category} />
+          <Field label="비교 키워드" value={input.keyword} onChange={handleChange('keyword')} placeholder={SAMPLE_BENCHMARK_INPUT.keyword} />
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="h-[38px] inline-flex items-center justify-center px-4 text-sm font-semibold rounded-lg bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white transition-colors whitespace-nowrap"
+          >
+            {loading ? '생성 중…' : '✦ AI 비교 리포트 생성'}
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* 가게 카드들 */}
+      {loading ? (
+        <div className={`${CARD_CLASS} text-center py-12`}>
+          <div className="inline-block w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">AI 벤치마킹 리포트 예시를 생성하고 있습니다.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">실제 공개 웹 검색 분석은 고도화 버전에서 제공됩니다.</p>
+        </div>
+      ) : (
+        <BenchmarkReport report={report} />
+      )}
+    </div>
+  )
+}
+
+function Field({ label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+      <input type="text" value={value} onChange={onChange} placeholder={placeholder} className={inputClass} />
+    </div>
+  )
+}
+
+function BenchmarkReport({ report }) {
+  const { myStore, localCompetitors, nationalCompetitors, radar, checklist, todayFixes, aiComment, collectedAt } = report
+
+  const radarSeries = useMemo(
+    () => [
+      { label: '우리 가게', data: radar.ours },
+      { label: '지역 평균', data: radar.local },
+      { label: '전국 평균', data: radar.national },
+    ],
+    [radar]
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* 가게 비교 컬럼 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className={CARD_CLASS}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">우리 가게</h2>
-            <button onClick={() => setMyStoreModalOpen(true)} className="text-xs text-violet-500 hover:underline">
-              수정
-            </button>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-500">내 가게</span>
           </div>
-          <div className="mb-2">
-            <div className="font-medium text-gray-800 dark:text-gray-100">{myStore.name || '(가게 이름 미입력)'}</div>
-            {(storeInfo.location || storeInfo.repCategory) && (
-              <div className="text-xs text-gray-400 dark:text-gray-500">{[storeInfo.location, storeInfo.repCategory].filter(Boolean).join(' · ')}</div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <span>대표가격 {formatWon(myStore.repPrice)}</span>
-            <span>배달팁 {formatWon(myStore.deliveryTip)}</span>
-            <span>쿠폰 {formatWon(myStore.coupon)}</span>
-            <span>세트 {myStore.setCount}개</span>
-            <span>리뷰 {myStore.reviewScore}점</span>
-            <span>전환율 {myStore.conversionRate}%</span>
-          </div>
+          <StoreCard store={myStore} highlight />
         </div>
 
         <div className={CARD_CLASS}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">지역 경쟁가게</h2>
-            <div className="flex items-center gap-2 text-xs">
-              <button onClick={() => setNearbyPickerOpen(true)} className="text-violet-500 hover:underline">
-                주변 추천 불러오기
-              </button>
-              <button
-                onClick={() => setCompetitorModal({ open: true, editing: { group: 'local' } })}
-                className="text-violet-500 hover:underline"
-              >
-                + 새 비교 가게 추가
-              </button>
-            </div>
-          </div>
-          {localCompetitors.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">등록된 지역 경쟁가게가 없어요.</p>
-          ) : (
-            <div className="space-y-2">
-              {localCompetitors.map((c) => (
-                <CompetitorCard
-                  key={c.id}
-                  competitor={c}
-                  onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })}
-                  onDelete={handleDeleteCompetitor}
-                  onResolved={(url) => handleResolvePlaceUrl(c.id, url)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className={CARD_CLASS}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">전국 참고가게</h2>
-            <button
-              onClick={() => setCompetitorModal({ open: true, editing: { group: 'national' } })}
-              className="text-xs text-violet-500 hover:underline"
-            >
-              + 새 비교 가게 추가
-            </button>
-          </div>
-          {nationalCompetitors.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">등록된 전국 참고가게가 없어요.</p>
-          ) : (
-            <div className="space-y-2">
-              {nationalCompetitors.map((c) => (
-                <CompetitorCard
-                  key={c.id}
-                  competitor={c}
-                  onEdit={(comp) => setCompetitorModal({ open: true, editing: comp })}
-                  onDelete={handleDeleteCompetitor}
-                  onResolved={(url) => handleResolvePlaceUrl(c.id, url)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 주요 지표 비교 */}
-      <div className={CARD_CLASS}>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">주요 지표 비교</h2>
-        <BenchmarkRadarChart labels={METRICS.map((m) => m.label)} series={series} />
-      </div>
-
-      {/* 비교 체크리스트 */}
-      <div className={CARD_CLASS}>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">비교 체크리스트</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                <th className="py-2 pr-4">항목</th>
-                <th className="py-2 pr-4 text-right">우리가게</th>
-                <th className="py-2 pr-4 text-right">지역평균</th>
-                <th className="py-2 pr-4 text-right">전국평균</th>
-                <th className="py-2 pr-4 text-right">비교결과</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700 dark:text-gray-300">
-              {checklist.map((row) => (
-                <tr key={row.key} className="border-b border-gray-50 dark:border-gray-700/40 last:border-0">
-                  <td className="py-2 pr-4">{row.label}</td>
-                  <td className="py-2 pr-4 text-right">{row.my.toFixed(0)}점</td>
-                  <td className="py-2 pr-4 text-right">{row.local != null ? `${row.local.toFixed(0)}점` : '-'}</td>
-                  <td className="py-2 pr-4 text-right">{row.national != null ? `${row.national.toFixed(0)}점` : '-'}</td>
-                  <td
-                    className={`py-2 pr-4 text-right font-semibold ${
-                      row.arrow === '▲' ? 'text-green-600 dark:text-green-400' : row.arrow === '▼' ? 'text-red-600 dark:text-red-400' : 'text-gray-400'
-                    }`}
-                  >
-                    {row.arrow}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!overallAvg && <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">경쟁 가게를 등록하면 비교 결과가 표시돼요.</p>}
-      </div>
-
-      {/* 오늘 고칠 것 3개 */}
-      <div className={CARD_CLASS}>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">오늘 고칠 것 3개</h2>
-        {topFixes.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">경쟁 가게를 등록하면 개선 포인트를 알려드려요.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {topFixes.map((fix) => {
-              const tpl = FIX_TEMPLATES[fix.key]
-              return (
-                <div key={fix.key} className="rounded-lg bg-gray-50 dark:bg-gray-900/40 p-4">
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{fix.label}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{tpl.issue}</p>
-                  <p className="text-sm text-violet-600 dark:text-violet-400 mb-2">{tpl.tip}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">{tpl.effect}</p>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 벤치마킹 저장함 */}
-      <div className={CARD_CLASS}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">벤치마킹 저장함</h2>
-          <button onClick={handleSaveSnapshot} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-violet-500 hover:bg-violet-600 text-white transition-colors">
-            새 비교 저장
-          </button>
-        </div>
-        {history.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">저장된 비교 기록이 없어요.</p>
-        ) : (
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
+            지역 경쟁가게 <span className="text-xs font-normal text-gray-400">({report.summary.localArea})</span>
+          </h2>
           <div className="space-y-2">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-900/40 text-sm">
-                <span className="text-gray-800 dark:text-gray-100">{h.summary}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(h.date).toLocaleDateString('ko-KR')}</span>
+            {localCompetitors.map((c) => (
+              <StoreCard key={c.name} store={c} compact />
+            ))}
+          </div>
+        </div>
+
+        <div className={CARD_CLASS}>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
+            전국 참고가게 <span className="text-xs font-normal text-gray-400">(인기 상위)</span>
+          </h2>
+          <div className="space-y-2">
+            {nationalCompetitors.map((c) => (
+              <StoreCard key={c.name} store={c} compact />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-400 dark:text-gray-500">
+        ※ 가격·배달팁·쿠폰·세트 정보는 {collectedAt} 기준 예시 데이터입니다. (실제 공개 정보는 확인 시점에 따라 달라질 수 있습니다)
+      </p>
+
+      {/* 지표/체크리스트/고칠것/AI */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className={CARD_CLASS}>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">주요 지표 비교</h2>
+          <BenchmarkRadarChart labels={radar.labels} series={radarSeries} />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">※ 점수는 100점 만점 기준 상대 비교입니다.</p>
+        </div>
+
+        <div className={CARD_CLASS}>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">비교 체크리스트</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/60">
+                  <th className="py-2 pr-2 font-medium">항목</th>
+                  <th className="py-2 pr-2 font-medium text-right">우리</th>
+                  <th className="py-2 pr-2 font-medium text-right">지역</th>
+                  <th className="py-2 pr-2 font-medium text-right">전국</th>
+                  <th className="py-2 font-medium text-right">평가</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-700 dark:text-gray-300">
+                {checklist.map((row) => {
+                  const v = VERDICT[row.verdict] || VERDICT.mid
+                  return (
+                    <tr key={row.item} className="border-b border-gray-50 dark:border-gray-700/40 last:border-0">
+                      <td className="py-1.5 pr-2 text-gray-800 dark:text-gray-100">{row.item}</td>
+                      <td className="py-1.5 pr-2 text-right">{row.ours}</td>
+                      <td className="py-1.5 pr-2 text-right text-gray-500 dark:text-gray-400">{row.local}</td>
+                      <td className="py-1.5 pr-2 text-right text-gray-500 dark:text-gray-400">{row.national}</td>
+                      <td className={`py-1.5 text-right font-semibold ${v.cls}`}>{v.label}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">※ 상대 비교 기준입니다.</p>
+        </div>
+
+        <div className={CARD_CLASS}>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">오늘 고칠 것 3개</h2>
+          <div className="space-y-3">
+            {todayFixes.map((fix, idx) => (
+              <div key={idx} className="rounded-lg bg-gray-50 dark:bg-gray-900/40 p-3">
+                <div className="flex items-start gap-2">
+                  <span className="flex-none w-5 h-5 rounded-full bg-violet-500 text-white text-xs font-bold flex items-center justify-center">{idx + 1}</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fix.title}</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{fix.desc}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-500">우선순위 {fix.priority}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-        )}
+        </div>
+
+        <div className={CARD_CLASS}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-violet-500 text-white">AI</span>
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">AI 사장님 코멘트</h2>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{aiComment.text}</p>
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-3 space-y-1">
+            <p>◎ 데이터 수집일: {collectedAt}</p>
+            <p>◎ 이 리포트는 공개 정보와 사용자 입력을 기반으로 AI가 분석한 참고 자료입니다. 실제 성과는 상권/운영상황에 따라 달라질 수 있습니다.</p>
+          </div>
+        </div>
       </div>
 
-      <MyStoreFormModal open={myStoreModalOpen} initialValue={myStore} onSave={handleSaveMyStore} onClose={() => setMyStoreModalOpen(false)} />
-      <CompetitorFormModal
-        open={competitorModal.open}
-        initialValue={competitorModal.editing}
-        onSave={handleSaveCompetitor}
-        onClose={() => setCompetitorModal({ open: false, editing: null })}
-      />
-      <NearbyCompetitorPicker
-        open={nearbyPickerOpen}
-        location={storeInfo.location}
-        excludeNames={[myStore.name, ...competitors.map((c) => c.name)]}
-        onAdd={handleAddNearby}
-        onClose={() => setNearbyPickerOpen(false)}
-      />
+      {/* 주의사항 */}
+      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+        본 분석은 <span className="font-semibold">공개 정보 기반 참고 리포트</span>이며, 자동 수집·실매출 분석이 아닙니다.
+        공개 리스팅에서 관찰 가능한 항목(가격대·세트 구성·사진 톤·리뷰 이벤트 등)만 비교하며, 확인 불가한 항목(경쟁사 실매출·순이익 등)은 표시하지 않습니다.
+        현재는 예시 데이터로 표시되며 실제 가격·쿠폰·리뷰 정보는 확인 시점에 따라 달라질 수 있고, 실제 공개 웹 검색 분석과 출처 링크는 고도화 버전에서 제공됩니다.
+        최종 의사결정은 사업자가 직접 판단해야 합니다.
+      </div>
+    </div>
+  )
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-gray-700 dark:text-gray-200 font-medium">{value}</span>
+    </div>
+  )
+}
+
+function StoreCard({ store, highlight, compact }) {
+  return (
+    <div className={`rounded-lg p-3 ${highlight ? 'bg-violet-500/5 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30' : 'bg-gray-50 dark:bg-gray-900/40'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        {store.rank && (
+          <span className="flex-none text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-800 dark:bg-gray-700 text-white">{store.rank}위</span>
+        )}
+        <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">{store.name}</span>
+        <span className="ml-auto flex-none text-[10px] text-gray-400 dark:text-gray-500">{store.platform}</span>
+      </div>
+      <div className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-1'} gap-x-3 gap-y-1`}>
+        <Row label="대표 메뉴 가격" value={formatWon(store.repPrice)} />
+        <Row label="배달팁" value={formatWon(store.deliveryTip)} />
+        <Row label="쿠폰" value={`${store.couponCount}개 (${store.couponAmount.toLocaleString('ko-KR')}원)`} />
+        <Row label="세트 구성" value={`${store.setCount}종`} />
+        <Row label="사진 톤" value={store.photoStyle} />
+        <Row label="리뷰 이벤트" value={store.reviewEvent} />
+      </div>
     </div>
   )
 }

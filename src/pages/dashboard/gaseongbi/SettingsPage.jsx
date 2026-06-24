@@ -165,13 +165,22 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>메뉴당 월 판매량 가정 (개)</label>
+            <label className={labelClass}>메뉴당 월 예상 판매수량 (개)</label>
             <input
               type="text"
               className={inputClass}
               min={1}
               value={settings.defaults.monthlyUnitsPerMenu}
               onChange={(e) => setDefaultField('monthlyUnitsPerMenu', Math.max(1, Number(e.target.value) || 0))}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>월 고정비 (임차료·인건비 등, 원)</label>
+            <input
+              type="text"
+              className={inputClass}
+              value={settings.defaults.monthlyFixedCost ?? 0}
+              onChange={(e) => setDefaultField('monthlyFixedCost', Math.max(0, Number(e.target.value) || 0))}
             />
           </div>
           <div className="flex items-end">

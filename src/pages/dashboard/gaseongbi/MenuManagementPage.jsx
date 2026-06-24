@@ -126,10 +126,10 @@ export default function MenuManagementPage() {
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard icon="store" label="총 메뉴 수" value={`${menus.length}개`} tone="violet" />
-        <SummaryCard icon="pie" label="평균 마진율" value={formatPercent(avgMargin)} tone="green" />
-        <SummaryCard icon="warning" label="위험 메뉴" value={`${riskCount}개`} tone="red" />
-        <SummaryCard icon="ai" label="최근 7일 수정" value={`${recentEdits}건`} tone="blue" />
+        <SummaryCard icon="store" label="총 메뉴 수" value={`${menus.length}개`} sub="관리 중인 메뉴" tone="violet" />
+        <SummaryCard icon="pie" label="평균 마진율" value={formatPercent(avgMargin)} sub="전체 메뉴 평균" tone="green" />
+        <SummaryCard icon="warning" label="위험 메뉴" value={`${riskCount}개`} sub="마진율 10% 미만" tone="red" />
+        <SummaryCard icon="ai" label="최근 수정" value={`${recentEdits}개`} sub="최근 7일 내 수정" tone="blue" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -197,12 +197,14 @@ export default function MenuManagementPage() {
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">메뉴명</th>
                       <th className="px-4 py-3 text-left font-medium">카테고리</th>
-                      <th className="px-4 py-3 text-right font-medium">판매가</th>
+                      <th className="px-4 py-3 text-right font-medium">매장가</th>
+                      <th className="px-4 py-3 text-right font-medium">배달앱 판매가</th>
                       <th className="px-4 py-3 text-right font-medium">원가</th>
                       <th className="px-4 py-3 text-right font-medium">포장비</th>
-                      <th className="px-4 py-3 text-right font-medium">쿠폰</th>
+                      <th className="px-4 py-3 text-right font-medium">기본 쿠폰</th>
+                      <th className="px-4 py-3 text-right font-medium">최근 수정일</th>
                       <th className="px-4 py-3 text-center font-medium">상태</th>
-                      <th className="px-4 py-3 text-center font-medium">관리</th>
+                      <th className="px-4 py-3 text-center font-medium">작업</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -216,10 +218,12 @@ export default function MenuManagementPage() {
                       >
                         <td className="px-4 py-3 font-medium">{menu.menuName}</td>
                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{menu.category || '-'}</td>
+                        <td className="px-4 py-3 text-right">{menu.storePrice ? formatWon(menu.storePrice) : '-'}</td>
                         <td className="px-4 py-3 text-right">{formatWon(menu.deliveryPrice)}</td>
                         <td className="px-4 py-3 text-right">{formatWon(menu.foodCost)}</td>
                         <td className="px-4 py-3 text-right">{formatWon(menu.packingCost)}</td>
                         <td className="px-4 py-3 text-right">{formatWon(menu.defaultCoupon)}</td>
+                        <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{new Date(menu.updatedAt).toLocaleDateString('ko-KR')}</td>
                         <td className="px-4 py-3 text-center">
                           <RatingBadge rating={result.rating} />
                         </td>

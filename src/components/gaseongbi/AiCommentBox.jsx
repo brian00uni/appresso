@@ -21,6 +21,7 @@ export default function AiCommentBox({ comment, actions }) {
       <p className="text-sm">{comment.message}</p>
       {comment.advice && <p className="text-sm opacity-80 mt-1">{comment.advice}</p>}
       {actions && <div className="flex flex-wrap gap-2 mt-3">{actions}</div>}
+      <p className="text-[11px] opacity-70 mt-2">※ 입력값 기준 참고 코멘트이며, 최종 판단은 사장님이 직접 해주세요.</p>
     </div>
   )
 }

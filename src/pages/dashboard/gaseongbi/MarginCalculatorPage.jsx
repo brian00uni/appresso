@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getMenus, getSettings, getCalcState, saveCalcState } from '../../../lib/gaseongbi/storage'
-import { calcMargin, calcAdCostPerOrder, formatWon, formatPercent } from '../../../lib/gaseongbi/calc'
+import { calcMargin, calcAdCostPerOrder, calcContributionScenario, formatWon, formatPercent } from '../../../lib/gaseongbi/calc'
 import { getAiComment } from '../../../lib/gaseongbi/aiComment'
 import { PLATFORM_ORDER, getPlatformDefaults } from '../../../lib/gaseongbi/platforms'
 import RatingBadge from '../../../components/gaseongbi/RatingBadge'
@@ -32,6 +32,8 @@ function buildInitialForm(settings) {
     adCost: d.adCost,
     targetMarginRate: d.targetMarginRate,
     vatIncluded: d.vatIncluded,
+    expectedQty: d.monthlyUnitsPerMenu ?? 30,
+    monthlyFixedCost: d.monthlyFixedCost ?? 0,
   }
 }
 
@@ -58,7 +60,11 @@ export default function MarginCalculatorPage() {
   const menus = useMemo(() => getMenus(), [])
 
   const [selectedMenuId, setSelectedMenuId] = useState(menuId || '')
-  const [form, setForm] = useState(() => getCalcState() || buildInitialForm(settings))
+  // 이전 저장 상태에 신규 필드(예상수량/월고정비)가 없을 수 있어 기본값과 병합
+  const [form, setForm] = useState(() => {
+    const saved = getCalcState()
+    return saved ? { ...buildInitialForm(settings), ...saved } : buildInitialForm(settings)
+  })
   const [adHelperOpen, setAdHelperOpen] = useState(false)
   const [adHelper, setAdHelper] = useState({ type: 'click', adSpend: 0, adOrders: 0, adRate: 0, fixedAdBudget: 0, monthlyOrders: 0 })
   const [promoTipOpen, setPromoTipOpen] = useState(false)
@@ -118,6 +124,17 @@ export default function MarginCalculatorPage() {
 
   const result = useMemo(() => calcMargin(form), [form])
   const aiComment = useMemo(() => getAiComment(result), [result])
+  // 보고서 2단 구조: 단위 공헌이익(쿠폰 적용 후, 광고/고정비 제외) 기준 월 예상 시뮬레이션
+  const scenario = useMemo(
+    () =>
+      calcContributionScenario({
+        unitContribution: result.profitAfterCoupon,
+        salePrice: form.salePrice,
+        expectedQty: Number(form.expectedQty) || 0,
+        monthlyFixedCost: Number(form.monthlyFixedCost) || 0,
+      }),
+    [result.profitAfterCoupon, form.salePrice, form.expectedQty, form.monthlyFixedCost]
+  )
 
   const applyAdHelper = () => {
     const perOrder = calcAdCostPerOrder(adHelper)
@@ -404,6 +421,44 @@ export default function MarginCalculatorPage() {
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">광고 포함 후 손익</div>
               <div className={`text-xl font-bold ${netProfit < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>{formatWon(netProfit)}</div>
               <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">쿠폰 적용 후 대비 {formatWon(netProfit - profitAfterCoupon)}</div>
+            </div>
+          </div>
+
+          {/* 월 예상 시뮬레이션 (보고서 2단 구조) */}
+          <div className={CARD_CLASS}>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">월 예상 시뮬레이션</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">실제 월매출이 아니라, 입력한 <span className="font-medium">예상 판매수량</span> 기준 추정입니다.</p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className={labelClass}>예상 월 판매수량 (개)</label>
+                <input type="text" className={inputClass} value={form.expectedQty} onChange={(e) => setNumberField('expectedQty', e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass}>월 고정비 (임차료·인건비 등, 원)</label>
+                <input type="text" className={inputClass} value={form.monthlyFixedCost} onChange={(e) => setNumberField('monthlyFixedCost', e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400">단위 공헌이익</div>
+                <div className="font-semibold text-gray-800 dark:text-gray-100">{formatWon(scenario.unitContribution)}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">공헌이익률 {formatPercent(scenario.unitContributionRate)}</div>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400">예상 월 공헌이익</div>
+                <div className="font-semibold text-gray-800 dark:text-gray-100">{formatWon(scenario.expectedContribution)}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">예상 월 매출 {formatWon(scenario.expectedRevenue)}</div>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400">예상 월 영업이익</div>
+                <div className={`font-semibold ${scenario.operatingProfit < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>{formatWon(scenario.operatingProfit)}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">월 공헌이익 − 월 고정비</div>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400">손익분기 수량</div>
+                <div className="font-semibold text-gray-800 dark:text-gray-100">{scenario.breakEvenQty != null ? `${scenario.breakEvenQty.toLocaleString('ko-KR')}개` : '계산 불가'}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{scenario.breakEvenQty != null ? '월 고정비 회수 기준' : '단위 공헌이익 0 이하'}</div>
+              </div>
             </div>
           </div>
         </div>
