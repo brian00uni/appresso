@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { sendPrompts } from './extensionBridge'
-import artStudioLogo from '../../assets/artstudio-logo.png'
+import artStudioLogo from '../../assets/artstudio-logo02.png'
 
 /** 칩 버튼 그룹 (단일 선택) */
 function ChipGroup({ options, value, onChange }) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import artStudioLogo from '../../assets/artstudio-logo.png'
+import artStudioLogo from '../../assets/artstudio-logo02.png'
 
 /**
  * Art Studio 좌측 — 구글 로그인 영역

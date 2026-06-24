@@ -44,9 +44,9 @@
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval';"
   },
   "icons": {
-    "16": "ico/artstudio-icon.png",
-    "48": "ico/artstudio-icon.png",
-    "128": "ico/artstudio-icon.png"
+    "16": "ico/artstudio-icon02.png",
+    "48": "ico/artstudio-icon02.png",
+    "128": "ico/artstudio-icon02.png"
   }
 }
 
