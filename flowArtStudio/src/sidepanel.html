@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Art Studio 플로우 자동화</title>
+  <style>
+    /* ─── Flow Content Disabled State ─── */
+    #flow-content.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      user-select: none;
+      filter: grayscale(0.3);
+      transition: opacity 0.3s ease, filter 0.3s ease;
+    }
+    #flow-content {
+      transition: opacity 0.3s ease, filter 0.3s ease;
+    }
+    :root {
+      --bg: #1a1a1a;
+      --surface: #252525;
+      --surface2: #2d2d2d;
+      --gold: #edaf20;
+      --gold-dim: rgba(237, 175, 32, 0.15);
+      --gold-border: rgba(237, 175, 32, 0.3);
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --border: #383838;
+      --danger: #ef4444;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
+      overflow-x: hidden;
+      font-size: 13px;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-img {
+      height: 24px;
+      border-radius: 4px;
+    }
+
+    .logo-text {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: -0.3px;
+    }
+
+    /* ─── Box ─── */
+    .box {
+      background: var(--surface);
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 13px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 7px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ─── Inputs ─── */
+    textarea {
+      width: 100%;
+      height: 110px;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+      resize: vertical;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus {
+      border-color: var(--gold);
+    }
+
+    textarea::placeholder {
+      color: #555;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5px 7px;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      border-color: var(--gold);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--gold);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    /* ─── Buttons ─── */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      transition: 0.15s;
+      font-size: 12px;
+    }
+
+    #btn-start {
+      background: var(--gold);
+      color: #000;
+    }
+
+    #btn-start:hover {
+      background: #d4a017;
+    }
+
+    #btn-pause {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    #btn-pause:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    #btn-stop {
+      background: var(--surface2);
+      color: #999;
+      border: 1px solid var(--border);
+    }
+
+    #btn-stop:hover {
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    button:disabled {
+      background: #2a2a2a !important;
+      color: #555 !important;
+      cursor: not-allowed;
+      border-color: #333 !important;
+    }
+
+    /* ─── JSON Queue ─── */
+    #json-queue-box {
+      display: none;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: var(--radius);
+      background: rgba(139, 92, 246, 0.08);
+    }
+
+    /* ─── Progress ─── */
+    #progress-container {
+      width: 100%;
+      background: #333;
+      border-radius: 3px;
+      height: 6px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--gold);
+      transition: width 0.4s ease;
+      border-radius: 3px;
+    }
+
+    #status-message {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* ─── Chip Buttons (Flow 설정) ─── */
+    .chip-btn {
+      padding: 5px 10px;
+      background: var(--surface2);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.15s;
+      flex: 1;
+      text-align: center;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .chip-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
+    /* ─── Top Bar (구 Footer → 상단 이동) ─── */
+    .app-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: #1e1e1e;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .footer-link {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+      color: #999;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: color 0.15s;
+      background: none;
+      border: none;
+      padding: 0;
+      flex: none;
+    }
+
+    .footer-link:hover {
+      color: var(--gold);
+    }
+
+    .footer-link:hover svg {
+      fill: var(--gold);
+    }
+
+    .footer-link svg {
+      transition: fill 0.15s;
+    }
+
+    .footer-link:hover .footer-version {
+      color: var(--gold);
+    }
+
+    .footer-version {
+      color: #666;
+      font-size: 11px;
+      font-weight: 700;
+      transition: color 0.15s;
+    }
+
+    /* ─── glow ─── */
+    @keyframes coffee-glow {
+      0%   { color: #999; text-shadow: none; }
+      50%  { color: #f59e0b; text-shadow: 0 0 6px rgba(245,158,11,0.8), 0 0 12px rgba(245,158,11,0.4); }
+      100% { color: #999; text-shadow: none; }
+    }
+
+    /* ─── Patch Notes Modal ─── */
+    #pn-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    #pn-overlay.open {
+      display: flex;
+    }
+
+    #pn-modal {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      width: 88%;
+      max-width: 320px;
+      max-height: 75vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .pn-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .pn-header h3 {
+      font-size: 14px;
+      color: var(--gold);
+      margin: 0;
+    }
+
+    .pn-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #aaa;
+      cursor: pointer;
+      flex: none;
+      padding: 0 4px;
+    }
+
+    .pn-close:hover {
+      color: var(--gold);
+    }
+
+    .pn-entry {
+      margin-bottom: 14px;
+    }
+
+    .pn-version-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .pn-version-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+
+    .pn-date {
+      font-size: 10px;
+      color: #777;
+    }
+
+    .pn-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .pn-badge.major {
+      background: rgba(237, 175, 32, 0.2);
+      color: var(--gold);
+    }
+
+    .pn-badge.feature {
+      background: rgba(52, 211, 153, 0.15);
+      color: #34d399;
+    }
+
+    .pn-badge.fix {
+      background: rgba(96, 165, 250, 0.15);
+      color: #60a5fa;
+    }
+
+    .pn-changes {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .pn-changes li {
+      padding: 2px 0 2px 12px;
+      color: #aaa;
+      font-size: 11px;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .pn-changes li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+    }
+
+    /* Donate Modal */
+    #donate-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    #donate-overlay.open {
+      display: flex;
+    }
+
+    .donate-modal {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px;
+      width: 85%;
+      max-width: 300px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .donate-modal h3 {
+      font-size: 15px;
+      color: var(--gold);
+      margin: 0 0 10px 0;
+    }
+
+    .donate-modal p {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      word-break: keep-all;
+    }
+
+    .account-box {
+      background: var(--bg);
+      padding: 12px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+    }
+
+    .btn-copy-account {
+      width: 100%;
+      padding: 10px;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 8px;
+      transition: opacity 0.15s;
+      flex: none;
+    }
+
+    .btn-copy-account:hover {
+      opacity: 0.88;
+    }
+
+    .btn-close-modal {
+      width: 100%;
+      padding: 8px;
+      background: transparent;
+      color: #777;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 12px;
+      flex: none;
+    }
+
+    .btn-close-modal:hover {
+      color: var(--text);
+      border-color: #555;
+    }
+
+    /* ─── 시작 오버레이 ─── */
+    #startup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s;
+    }
+    #startup-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #startup-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 32px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      max-width: 260px;
+      width: 90%;
+    }
+    .startup-logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+    }
+    .startup-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #111111;
+      letter-spacing: -0.3px;
+      text-align: center;
+    }
+    .startup-msg {
+      font-size: 13px;
+      color: #333333;
+      text-align: center;
+      line-height: 1.7;
+      max-width: 220px;
+    }
+    .startup-msg strong {
+      color: #000000;
+      font-weight: 700;
+    }
+    .startup-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #333;
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .startup-btn {
+      display: none;
+      padding: 10px 28px;
+      background: var(--gold);
+      color: #000;
+      font-weight: 800;
+      font-size: 14px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .startup-btn:hover { opacity: 0.85; }
+    .startup-btn.coffee {
+      background: linear-gradient(135deg,#f59e0b,#d97706);
+      animation: coffee-glow 2.4s ease-in-out infinite;
+    }
+    .startup-go-flow {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ─── 시작 오버레이 ─── -->
+  <div id="startup-overlay">
+    <div id="startup-card">
+      <img src="../ico/artstudio-logo.png" class="startup-logo" onerror="this.style.display='none'">
+      <div class="startup-title">Art Studio Flow 자동화</div>
+      <div id="startup-spinner" class="startup-spinner"></div>
+      <div id="startup-msg" class="startup-msg">서버와 통신합니다...</div>
+      <!-- Flow 아님: 이동 안내 -->
+      <div id="startup-go-flow" class="startup-go-flow">
+        <div class="startup-msg"><strong>🚀 Flow 페이지로 이동해 주세요</strong><br>Google Flow 탭이 감지되지 않았습니다.</div>
+        <button id="startup-btn-flow" class="startup-btn" style="display:block">Flow 열기</button>
+      </div>
+      <!-- Flow 맞음: coffee 안내 -->
+      <div id="startup-go-coffee" style="display:none;flex-direction:column;align-items:center;gap:10px;">
+        <div class="startup-msg"><strong>활성화가 필요합니다</strong><br>아래 버튼을 눌러 진행해 주세요.</div>
+        <button id="startup-btn-coffee" class="startup-btn coffee" style="display:block">활성화하기</button>
+      </div>
+      <!-- 오프라인 -->
+      <div id="startup-offline" style="display:none;">
+        <div class="startup-msg" style="color:#ef4444;">⚠️ 서버에 연결할 수 없습니다.<br>잠시 후 다시 시도해 주세요.</div>
+      </div>
+      <!-- 로그인 (비밀번호 인증) -->
+      <div id="startup-login" style="display:none; flex-direction:column; align-items:center; gap:10px;">
+        <div class="startup-msg"><strong>보안 인증이 필요합니다</strong></div>
+        <input type="password" id="auth-password" placeholder="비밀번호 입력" style="padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); background: rgba(0,0,0,0.5); color: #fff; width: 100%; box-sizing: border-box; text-align: center; font-size: 14px;">
+        <button id="btn-auth-submit" class="startup-btn" style="width:100%; display:block; background: var(--gold); color: #000;">인증하기</button>
+        <div id="auth-error-msg" style="font-size:12px; color:#ef4444; margin-top:5px; display:none;">비밀번호가 틀렸습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 패치노트 모달 -->
+  <div id="pn-overlay">
+    <div id="pn-modal">
+      <div class="pn-header">
+        <h3>📋 패치노트</h3>
+        <button class="pn-close" id="pn-close-btn">&times;</button>
+      </div>
+      <div id="pn-content">
+        <div style="color:#777;text-align:center;padding:1rem;">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="donate-overlay">
+    <div class="donate-modal">
+      <span id="donate-close-btn" style="position:absolute;top:8px;right:12px;font-size:18px;color:#777;cursor:pointer;">&times;</span>
+    </div>
+  </div>
+
+
+  <div class="header">
+    <div class="header-left">
+      <img src="../ico/artstudio-logo.png" alt="Art Studio" class="logo-img" id="main-logo" onerror="this.style.display='none';">
+      <span class="logo-text">Flow 자동화</span>
+      <span id="flow-status" style="display:inline-flex; align-items:center; gap:4px; margin-left:8px; font-size:11px; font-weight:600;">
+        <span id="status-dot" style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block;"></span>
+        <span id="status-text" style="color:#ef4444;">Off-line</span>
+      </span>
+    </div>
+    <button id="btn-open-flow" style="flex:none; padding:4px 12px; font-size:11px; font-weight:700; background:var(--gold); color:#000; border:none; border-radius:var(--radius); cursor:pointer;">🚀 Flow 열기</button>
+  </div>
+
+  <!-- Top Bar (구 Footer → 상단 이동) -->
+  <div class="app-footer">
+    <button class="footer-link" id="btn-guide">❓ 가이드</button>
+        <a class="footer-link" id="link-youtube" href="#" target="_blank" rel="noreferrer" title="유튜브 (링크 미설정)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#888" style="flex:none;"><path d="M23.5 6.2c-.3-1-1-1.8-2-2.1C19.6 3.5 12 3.5 12 3.5s-7.6 0-9.5.6c-1 .3-1.8 1.1-2 2.1C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2.1 1.9.6 9.5.6 9.5.6s7.6 0 9.5-.6c1-.3 1.8-1.1 2-2.1.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg></a>
+    <button class="footer-link" id="btn-patchnotes">📋 <span class="footer-version" id="footer-ver">v20260430a</span></button>
+  </div>
+
+  <!-- Flow 콘텐츠 래퍼 (off-line 시 비활성화) -->
+  <div id="flow-content">
+
+  <!-- 프롬프트 입력 -->
+  <div class="box">
+    <h2 style="display: flex; justify-content: space-between; align-items: center;">
+      <span>프롬프트 입력</span>
+      <div style="display:flex; gap:4px;">
+        <button id="btn-paste-json"
+          style="flex: none; padding: 3px 10px; font-size: 11px; background: #2563eb; border-radius: var(--radius); cursor: pointer; border: none; color: white; font-weight: 600;"
+          title="JSON 텍스트를 직접 붙여넣기">📋 JSON 붙여넣기</button>
+        <button id="btn-load-json"
+          style="flex: none; padding: 3px 10px; font-size: 11px; background: var(--purple); border-radius: var(--radius); cursor: pointer; border: none; color: white; font-weight: 600;">📂 JSON 파일열기</button>
+      </div>
+      <input type="file" id="json-file-input" accept=".json" multiple style="display: none;">
+    </h2>
+
+    <!-- JSON 붙여넣기 입력 패널 -->
+    <div id="json-paste-box" style="display:none; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:11px; font-weight:600; color:#60a5fa;">📋 JSON 붙여넣기</span>
+        <div style="display:flex; gap:4px;">
+          <button id="btn-paste-add"
+            style="flex:none; padding:2px 10px; font-size:10px; background:#22c55e; border:none; border-radius:3px; color:white; cursor:pointer; font-weight:600;">추가</button>
+          <button id="btn-paste-cancel"
+            style="flex:none; padding:2px 8px; font-size:10px; background:#555; border:none; border-radius:3px; color:white; cursor:pointer;">닫기</button>
+        </div>
+      </div>
+      <textarea id="json-paste-input"
+        style="width:100%; height:120px; background:var(--surface2); color:var(--text); border:1px solid #2563eb; border-radius:var(--radius); padding:8px; font-size:11px; font-family:monospace; resize:vertical; outline:none;"
+        placeholder='여기에 JSON을 붙여넣거나 직접 입력하세요.&#10;&#10;예: { "scene": "...", "prompt": "..." }'></textarea>
+      <div id="json-paste-name-row" style="display:flex; align-items:center; gap:6px; margin-top:6px;">
+        <label style="font-size:11px; color:var(--text-dim); white-space:nowrap;">파일명:</label>
+        <input type="text" id="json-paste-name" placeholder="예: scene_01" style="flex:1; font-size:11px;">
+      </div>
+    </div>
+
+    <div id="json-queue-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 11px; font-weight: 600; color: #a78bfa;">📂 JSON 모드</span>
+        <button id="btn-clear-json"
+          style="flex: none; padding: 2px 8px; font-size: 10px; background: var(--danger); border-radius: 3px; cursor: pointer; border: none; color: white;">전체
+          삭제</button>
+      </div>
+      <div id="json-queue-list" style="font-size: 11px; color: #aaa;"></div>
+    </div>
+
+    <div id="main-prompt-container">
+      <textarea id="prompt-list"
+        placeholder="생성할 메인 프롬프트를 한 줄에 하나씩 적어주세요.&#10;&#10;📂 JSON 버튼으로 scene JSON 파일을 통째로 입력할 수 있습니다."></textarea>
+      <div class="row" style="margin-top: 5px;">
+        <div id="prompt-count" style="font-size: 11px; color: var(--text-dim); font-weight: 500;">프롬프트 0개</div>
+        <div style="display: flex; align-items: center; gap: 5px;">
+          <input type="checkbox" id="auto-translate" checked>
+          <label for="auto-translate" style="font-size: 11px; font-weight: 600; color: #60a5fa; cursor: pointer;">🌐 다국어 번역</label>
+          <select id="translate-target" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none;">
+            <option value="en" style="background: var(--surface); color: var(--text);">영어 (EN)</option>
+            <option value="ja" style="background: var(--surface); color: var(--text);">일본어 (JA)</option>
+            <option value="zh-CN" style="background: var(--surface); color: var(--text);">중국어 (ZH)</option>
+            <option value="es" style="background: var(--surface); color: var(--text);">스페인어 (ES)</option>
+            <option value="fr" style="background: var(--surface); color: var(--text);">프랑스어 (FR)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
+        <label style="font-size: 11px; font-weight: 600; color: var(--text-dim);">스타일 프롬프트 (선택)</label>
+        <input type="text" id="style-prompt" placeholder="예: cinematic lighting, 8k, photorealistic" style="width: 100%; margin-top: 4px;">
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Flow 설정</h2>
+    <!-- 모드 선택 -->
+    <div style="margin-bottom: 8px;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">모드</label>
+      <div id="mode-group" style="display: flex; gap: 4px;">
+        <button class="chip-btn active" data-mode="image">🖼️ 이미지</button>
+        <button class="chip-btn" data-mode="video">🎬 동영상</button>
+      </div>
+    </div>
+    <!-- 서브모드 (동영상 전용: 프레임/에셋) -->
+    <div id="submode-group-wrap" style="margin-bottom: 8px; display: none;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">타입</label>
+      <div id="submode-group" style="display: flex; gap: 4px;">
+        <button class="chip-btn active" data-submode="frame">〔〕프레임</button>
+        <button class="chip-btn" data-submode="asset">🔗 에셋</button>
+      </div>
+    </div>
+    <!-- 비율 -->
+    <div style="margin-bottom: 8px;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">비율</label>
+      <div id="ratio-group" style="display: flex; gap: 4px;">
+        <button class="chip-btn" data-ratio="16:9" data-for="image">16:9</button>
+        <button class="chip-btn" data-ratio="4:3" data-for="image">4:3</button>
+        <button class="chip-btn" data-ratio="1:1" data-for="image">1:1</button>
+        <button class="chip-btn" data-ratio="3:4" data-for="image">3:4</button>
+        <button class="chip-btn active" data-ratio="9:16" data-for="both">9:16</button>
+        <button class="chip-btn" data-ratio="16:9" data-for="video" style="display:none;">16:9</button>
+      </div>
+    </div>
+    <!-- 수량 -->
+    <div style="margin-bottom: 8px;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">수량</label>
+      <div id="count-group" style="display: flex; gap: 4px;">
+        <button class="chip-btn active" data-count="x1">x1</button>
+        <button class="chip-btn" data-count="x2">x2</button>
+        <button class="chip-btn" data-count="x3">x3</button>
+        <button class="chip-btn" data-count="x4">x4</button>
+      </div>
+    </div>
+    <!-- 모델 (동영상 전용) -->
+    <div id="model-group" style="display: none; margin-bottom: 0;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">모델</label>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+        <button class="chip-btn" data-model="Veo 3.1 - Lite">🪶 Lite</button>
+        <button class="chip-btn active" data-model="Veo 3.1 - Fast">⚡ Fast</button>
+        <button class="chip-btn" data-model="Veo 3.1 - Quality">✨ Quality</button>
+      </div>
+    </div>
+    <!-- 모델 (이미지 전용) -->
+    <div id="img-model-group" style="margin-bottom: 0;">
+      <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 4px; display: block;">모델</label>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+        <button class="chip-btn" data-imgmodel="Nano Banana Pro">🍌 Pro</button>
+        <button class="chip-btn active" data-imgmodel="Nano Banana 2">🍌 Banana 2</button>
+        <button class="chip-btn" data-imgmodel="Imagen 4">🖼️ Imagen 4</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 작업 설정 -->
+  <div class="box">
+    <h2>작업 설정</h2>
+    <!-- ⚠️ 면책 경고 -->
+    <div style="background:rgba(239,68,68,0.12);border:1.5px solid rgba(239,68,68,0.5);border-radius:6px;padding:9px 12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:13px;">⚠️</span>
+        <span style="font-size:11px;font-weight:700;color:#ef4444;">주의사항</span>
+      </div>
+      <div style="font-size:11px;color:#fca5a5;line-height:1.7;word-break:keep-all; margin-bottom:6px;">
+        과도한 자동화 사용 시 <strong style="color:#f87171;">계정 제한 또는 불이익</strong>이 발생할 수 있습니다.<br>
+        해당 경우 개발자가 추가적인 도움을 드리기 어렵습니다.
+      </div>
+      </div>
+      <div style="font-size:10px;color:#d4a853;line-height:1.6;padding:0 2px;margin-bottom:10px;opacity:0.85;">
+        🔒 어뷰징 방지 및 원활한 서비스 제공을 위해 접속 IP 정보가 수집될 수 있습니다.<br>
+        프로그램 이용 시 해당 정보 수집에 동의한 것으로 간주됩니다.
+      </div>
+    <div class="row">
+      <label style="font-size: 12px;">이미지 생성시간 (초)</label>
+      <div>
+        <input type="number" id="delay-min" value="15" style="width: 40px;"> ~
+        <input type="number" id="delay-max" value="30" style="width: 40px;">
+      </div>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <label style="font-size: 12px;">이미지 파일명</label>
+      <input type="text" id="file-prefix" value="ArtStudio_" style="width: 140px;" placeholder="예: 썸네일_">
+    </div>
+    <div style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
+      <div class="row" style="justify-content: flex-start; gap: 15px; margin-top: 0;">
+        <div>
+          <input type="checkbox" id="use-reference">
+          <label for="use-reference" style="font-size: 12px; cursor: pointer;">참조이미지</label>
+        </div>
+        <div>
+          <input type="checkbox" id="auto-download" checked>
+          <label for="auto-download" style="font-size: 12px; cursor: pointer;">자동 다운로드</label>
+        </div>
+      </div>
+      <div id="ref-name-box" style="display: none; margin-top: 8px;">
+        <!-- 동영상 프레임 모드: 단일 에셋명 (기존) -->
+        <div id="ref-name-single" class="row">
+          <label id="ref-name-label" style="font-size: 12px;">에셋 검색명</label>
+          <input type="text" id="ref-name" placeholder="예: abc" style="width: 140px;">
+        </div>
+        <!-- 이미지 모드: 다중 에셋명 슬롯 -->
+        <div id="ref-name-multi" style="display: none; width: 100%;">
+          <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 4px;">에셋 검색명 <span id="ref-asset-limit-label" style="color:#22c55e;">(최대 10개)</span></label>
+          <div id="ref-asset-slots" style="display:flex; flex-direction:column; gap:3px;"></div>
+        </div>
+      </div>
+      <!-- 종료 프레임 (동영상 전용, 선택) -->
+      <div id="end-frame-box" style="display: none; margin-top: 8px;">
+        <div class="row" style="margin-top: 0;">
+          <div>
+            <input type="checkbox" id="use-end-frame">
+            <label for="use-end-frame" style="font-size: 12px; cursor: pointer;">🔚 종료 프레임</label>
+          </div>
+        </div>
+        <div id="end-frame-name-box" style="display: none; margin-top: 6px;" class="row">
+          <label style="font-size: 12px;">종료 에셋명</label>
+          <input type="text" id="end-frame-name" placeholder="예: abc" style="width: 140px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 작업 버튼 -->
+  <div class="btn-group">
+    <button id="btn-start">▶ 작업 시작</button>
+    <button id="btn-pause" disabled>⏸ 일시정지</button>
+    <button id="btn-skip" disabled style="background:#2563eb;">⏭ 스킵</button>
+    <button id="btn-stop" disabled>⏹ 중지</button>
+  </div>
+
+  <!-- 진행 상태 -->
+  <div class="box" style="margin-bottom: 8px;">
+    <h2 style="display: flex; justify-content: space-between; align-items: center;">
+      <span>진행 상태</span>
+      <span id="progress-text" style="color: var(--gold); font-size: 12px;">0 / 0</span>
+    </h2>
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <div id="status-message">대기 중. 프롬프트를 입력해 주세요.</div>
+  </div>
+
+  <!-- 미디어 이름 변경 섹션 -->
+  <div class="box">
+    <h2 style="display: flex; justify-content: space-between; align-items: center;">
+      <span>🏷️ 미디어 이름 변경</span>
+      <span id="rename-progress-text" style="color: var(--gold); font-size: 12px;">대기 중</span>
+    </h2>
+    <div style="font-size: 11px; color: #888; margin-bottom: 10px;">
+      맨 아래(가장 오래된)부터 위로 올라가며 순차 명칭 변경
+    </div>
+    <div class="row" style="margin-bottom: 6px;">
+      <label style="font-size: 12px;">접두어</label>
+      <input type="text" id="rename-prefix" value="scene_" placeholder="예: scene_" style="width: 140px;">
+    </div>
+    <div class="row" style="margin-bottom: 10px;">
+      <label style="font-size: 12px;">총 갯수</label>
+      <input type="number" id="rename-total" min="1" max="999" placeholder="예: 72" style="width: 140px;">
+    </div>
+    <div id="rename-progress-container" style="width:100%; height:6px; background:#1e293b; border-radius:3px; overflow:hidden; margin-bottom: 8px;">
+      <div id="rename-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#f59e0b,#eab308); border-radius:3px; transition:width .3s;"></div>
+    </div>
+    <div id="rename-status" style="font-size: 11px; color: #888; margin-bottom: 8px;">프로젝트 페이지에서 사용하세요.</div>
+    <div style="display: flex; gap: 6px;">
+      <button id="btn-rename-start" style="flex:1; padding:6px 0; font-size:12px; font-weight:700; background:var(--gold); color:#000; border:none; border-radius:var(--radius); cursor:pointer;">🏷️ 이름 변경 시작</button>
+      <button id="btn-rename-stop" disabled style="flex:0.6; padding:6px 0; font-size:12px; font-weight:700; background:#374151; color:#9ca3af; border:none; border-radius:var(--radius); cursor:pointer;">⏹ 중지</button>
+    </div>
+  </div>
+
+  </div><!-- /flow-content -->
+
+
+  <script type="module" src="main.js"></script>
+  <script src="footer.js"></script>
+</body>
+
+</html>

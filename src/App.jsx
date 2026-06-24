@@ -16,6 +16,7 @@ import LoginPage from './pages/LoginPage'
 // App pages (standalone, no layout)
 import FortuneCookie from './pages/apps/FortuneCookie'
 import LottoRecommend from './pages/apps/LottoRecommend'
+import ArtStudioPage from './pages/artStudio/ArtStudioPage'
 
 // Dashboard layout + pages
 import DashboardLayout from './pages/DashboardLayout'
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/apps" element={<AppsPage />} />
       <Route path="/apps/fortune-cookie" element={<FortuneCookie />} />
       <Route path="/apps/lotto" element={<LottoRecommend />} />
+      <Route path="/art-studio" element={<ArtStudioPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<LoginPage allowSignup={false} />} />
       <Route path="/dashboard/report/detail" element={<ProfitReportDetailPage />} />

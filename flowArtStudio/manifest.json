@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Art Studio 플로우 자동화",
+  "version": "2026.4.30",
+  "version_name": "v20260430a",
+  "description": "구글 Flow 작업을 자동화합니다. 일괄 프롬프트 전송, JSON 전체 입력, 영문 자동 번역, 이미지 자동 저장 기능을 통해 크리에이터의 시간을 획기적으로 단축해 드립니다.",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "tabs",
+    "downloads",
+    "sidePanel",
+    "clipboardRead",
+    "clipboardWrite",
+    "webRequest",
+    "storage",
+    "debugger"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:5173/*",
+      "https://appresso.vercel.app/*"
+    ]
+  },
+  "action": {
+    "default_title": "Art Studio 플로우 자동화"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel.html"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/사용자_가이드.html", "src/asset/4dollors.mp3", "build/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval';"
+  },
+  "icons": {
+    "16": "ico/artstudio-icon.png",
+    "48": "ico/artstudio-icon.png",
+    "128": "ico/artstudio-icon.png"
+  }
+}
+

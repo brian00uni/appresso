@@ -54,6 +54,13 @@ const aiServices = [
     desc: 'AI 음성으로 콘텐츠를 만들어보세요',
     color: 'from-sky-500/20 to-cyan-500/20 border-sky-500/30',
   },
+  {
+    href: '/art-studio',
+    name: 'Art Studio',
+    emoji: '🎨',
+    desc: 'AI로 이미지를 일괄 자동 생성해보세요',
+    color: 'from-amber-500/20 to-yellow-500/20 border-amber-500/30',
+  },
 ]
 
 // 하단 Funny App (팝업 링크)
@@ -132,7 +139,7 @@ export default function HomePage() {
               <a
                 key={s.href}
                 href={s.href}
-                target="_blank"
+                target={s.href.startsWith('/') ? '_self' : '_blank'}
                 rel="noopener noreferrer"
                 className={`bg-gradient-to-br ${s.color} bg-gray-800 border rounded-2xl p-6 hover:scale-[1.02] transition-transform group`}
               >
