@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Transition from '../utils/Transition';
 import { useAuthStore } from '../stores/authStore';
+import { roleLabel } from '../lib/accounts';
 
 import UserAvatar from '../images/user-avatar-32.png';
 
@@ -12,8 +13,11 @@ function DropdownProfile({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
-  const displayName = user?.email ?? '사용자';
+  // 이름 우선, 없으면 이메일 아이디 부분
+  const displayName = profile?.name?.trim() || user?.email?.split('@')[0] || '사용자';
+  const roleText = roleLabel(profile?.role || 'general');
 
   async function handleSignOut() {
     setDropdownOpen(false);
@@ -80,7 +84,7 @@ function DropdownProfile({
         >
           <div className="pt-0.5 pb-2 px-3 mb-1 border-b border-gray-200 dark:border-gray-700/60">
             <div className="font-medium text-gray-800 dark:text-gray-100 truncate">{displayName}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 italic">로그인됨</div>
+            <div className="text-xs text-violet-500 dark:text-violet-400 font-medium">{roleText}</div>
           </div>
           <ul>
             <li>
