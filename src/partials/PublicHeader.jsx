@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import appressoLogo from '../assets/appresso-logo.png'
 
 export default function PublicHeader() {
   const user = useAuthStore((s) => s.user)
@@ -11,11 +12,8 @@ export default function PublicHeader() {
         <div className="flex items-center justify-between h-16 border-b border-gray-700/60">
 
           {/* 로고 */}
-          <Link to="/" className="flex items-center gap-2">
-            <svg className="fill-violet-500" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-              <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 0 17.08v5.716c7.88-.584 14.172-6.876 14.756-14.756zM14.8 26.924V31.9563C7.0006 31.3706.7293 25.1gst 0.006617.2H5.76a9.04 9.04 0 0 0 9.04 9.724z" />
-            </svg>
-            <span className="text-gray-100 font-bold text-lg">appresso</span>
+          <Link to="/" className="flex items-center">
+            <img src={appressoLogo} alt="appresso" className="h-8 w-auto" />
           </Link>
 
           {/* 네비게이션 */}
@@ -23,6 +21,18 @@ export default function PublicHeader() {
             <NavLink
               to="/"
               end
+              className={({ isActive }) =>
+                `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'text-violet-400 bg-violet-500/10'
+                    : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
+                }`
+              }
+            >
+              홈
+            </NavLink>
+            <NavLink
+              to="/youtube"
               className={({ isActive }) =>
                 `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive

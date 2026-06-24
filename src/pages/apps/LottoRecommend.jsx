@@ -19,6 +19,7 @@
 //   },
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { trackVisit } from '../../lib/visits';
 
 // ══════════════════════════════════════════════════════════════
 // § 상수
@@ -1381,6 +1382,11 @@ export default function LottoRecommend() {
   const [log,       setLog]      = useState([]);
   const [lastFetch, setLastFetch]= useState(() => ls.get(LS_LAST_FETCH, 0));
   const timerRef = useRef(null);
+
+  // 방문 카운팅 (앱별 집계)
+  useEffect(() => {
+    trackVisit('lotto');
+  }, []);
 
   // API fetch
   const doFetch = useCallback(async (fromDrw, silent = false) => {

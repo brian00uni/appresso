@@ -7,6 +7,7 @@ import './css/style.css'
 import './charts/ChartjsConfig'
 
 // Public pages
+import HomePage from './pages/public/HomePage'
 import YouTubePage from './pages/public/YouTubePage'
 import TrendFinderPage from './pages/public/TrendFinderPage'
 import AppsPage from './pages/public/AppsPage'
@@ -43,7 +44,8 @@ function AppRoutes() {
   return (
     <Routes>
       {/* 공개 페이지 */}
-      <Route path="/" element={<YouTubePage />} />
+      <Route path="/" element={<HomePage />} />
+      <Route path="/youtube" element={<YouTubePage />} />
       <Route path="/trend" element={<TrendFinderPage />} />
       <Route path="/apps" element={<AppsPage />} />
       <Route path="/apps/fortune-cookie" element={<FortuneCookie />} />
@@ -61,8 +63,6 @@ function AppRoutes() {
         <Route path="ads" element={<AdAnalysisPage />} />
         <Route path="benchmark" element={<BenchmarkingPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="youtube" element={<YouTubePage embedded />} />
-        <Route path="apps" element={<AppsPage embedded />} />
         <Route path="apps/fortune-cookie" element={<FortuneCookie />} />
         <Route path="apps/lotto" element={<LottoRecommend />} />
       </Route>

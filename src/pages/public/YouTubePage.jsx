@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import PublicHeader from '../../partials/PublicHeader'
+// import PublicHeader from '../../partials/PublicHeader'
 import ChannelHoverCard from '../../components/ChannelHoverCard'
+import PublicAppLayout from './PublicAppLayout'
 import { extractYouTubeVideoId, downloadYoutubeVideo } from '../../lib/eyesApi'
 
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY
@@ -346,10 +347,9 @@ export default function YouTubePage() {
   const searchModeOptions = [{ v: 'channel', l: '채널명 검색' }, { v: 'keyword', l: '키워드 검색' }]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100">
-      <PublicHeader />
+    <PublicAppLayout appKey="youtube">
 
-      <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
 
         {/* 페이지 타이틀 */}
         <div className="mb-8">
@@ -569,6 +569,6 @@ export default function YouTubePage() {
           onMouseLeave={scheduleHideCard}
         />
       )}
-    </div>
+    </PublicAppLayout>
   )
 }

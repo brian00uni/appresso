@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import fcOff from '../../images/fc-off-cookie.png'
 import fcOn from '../../images/fc-on-cookie.png'
 import fcvOff from '../../images/fcv-off-cookie.png'
 import fcvOn from '../../images/fcv-on-cookie.png'
 import fcBg from '../../images/fc-bg.png'
 import { fortunes, vipFortunes } from '../../data/fortunes'
+import { trackVisit } from '../../lib/visits'
 
 /* ─────────────────────────────────────────────────────────
    ⚙️ 직접 입력하는 설정값 — 아래 따옴표 안만 수정하면 됩니다
@@ -35,6 +36,11 @@ export default function FortuneCookie() {
   const [fortune, setFortune] = useState(null)
   const [cracked, setCracked] = useState(false)
   const [spinning, setSpinning] = useState(false)
+
+  // 방문 카운팅 (앱별 집계)
+  useEffect(() => {
+    trackVisit('fortune-cookie')
+  }, [])
 
   const pool = vip ? vipFortunes : fortunes
   const cookieImg = cracked ? (vip ? fcvOn : fcOn) : (vip ? fcvOff : fcOff)

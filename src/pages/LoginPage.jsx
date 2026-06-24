@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
+import appressoLogo from '../assets/appresso-logo.png'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -39,12 +40,10 @@ export default function LoginPage() {
 
         {/* 로고 */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center justify-center w-12 h-12 bg-violet-500 rounded-xl mb-4">
-            <svg className="fill-white" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-              <path d="M21.956 10.8C21.372 4.92 17.08.628 11.2.044V4.76a6.04 6.04 0 0 0 0 11.48v4.716c5.88-.584 10.172-4.876 10.756-10.156zM9.8 19.924V23.9563C4.0006 23.3706.7293 17.9 .006611.2H4.76A6.04 6.04 0 0 0 9.8 19.924z" />
-            </svg>
+          <Link to="/" className="inline-flex items-center justify-center mb-4">
+            <img src={appressoLogo} alt="appresso" className="h-12 w-auto" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-100">appresso 로그인</h1>
+          <h1 className="text-2xl font-bold text-gray-100">로그인</h1>
           <p className="text-sm text-gray-500 mt-1">사내 업무 관리 시스템</p>
         </div>
 

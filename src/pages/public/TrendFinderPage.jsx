@@ -1,15 +1,17 @@
 import React, { useState, useRef, useMemo } from 'react'
-import PublicHeader from '../../partials/PublicHeader'
+// import PublicHeader from '../../partials/PublicHeader'
 import VideoHoverCard from '../../components/VideoHoverCard'
 import NaverTrendChart from '../../components/NaverTrendChart'
+import PublicAppLayout from './PublicAppLayout'
 import { EYES_API_BASE, postJson } from '../../lib/eyesApi'
 
 const API_URL = `${EYES_API_BASE}/api/youtube/opportunities`
 
 const platformTabs = [
   { v: 'youtube', l: '유튜브' },
-  { v: 'instagram', l: '인스타그램' },
-  { v: 'tiktok', l: '틱톡' },
+  // 인스타그램/틱톡은 API 서버 미구현(준비 중)이라 탭 숨김 — 백엔드 준비되면 복구
+  // { v: 'instagram', l: '인스타그램' },
+  // { v: 'tiktok', l: '틱톡' },
   { v: 'naver', l: '네이버 검색 추이' },
 ]
 
@@ -167,6 +169,9 @@ export default function TrendFinderPage() {
   const [naverLoading, setNaverLoading] = useState(false)
   const [naverError, setNaverError] = useState('')
 
+  // 유튜브/인스타/틱톡 검색 시 같은 키워드로 자동 출력되는 네이버 검색 추이
+  const [sideNaver, setSideNaver] = useState({ loading: false, error: '', result: null })
+
   const [keywords, setKeywords] = useState('주식, 부업, 쇼츠, K뷰티')
   const [days, setDays] = useState(7)
   const [locale, setLocale] = useState('KR-ko')
@@ -244,6 +249,7 @@ export default function TrendFinderPage() {
     const localeOpt = localeOptions.find((l) => l.v === locale)
     setLoading(true)
     setError('')
+    runSideNaver(keywordList) // 같은 키워드로 네이버 추이 자동 출력
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -282,6 +288,7 @@ export default function TrendFinderPage() {
 
     setSocialLoading(true)
     setSocialError('')
+    runSideNaver(keywordList) // 같은 키워드로 네이버 추이 자동 출력
     try {
       const data = await postJson(`/api/${platform}/search`, {
         keywords: keywordList,
@@ -297,25 +304,28 @@ export default function TrendFinderPage() {
     }
   }
 
+  // 네이버 검색량 추이 fetch (네이버 탭 / 자동 패널 공용)
+  async function fetchNaverTrends(keywordList, periodDays) {
+    const today = new Date()
+    const endDate = today.toISOString().slice(0, 10)
+    const startDate = new Date(today.getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    return postJson('/api/naver/trends', {
+      keywords: keywordList,
+      startDate,
+      endDate,
+      timeUnit: 'date',
+    })
+  }
+
   async function handleNaverSearch(e) {
     e.preventDefault()
     const keywordList = naverKeywords.split(',').map((k) => k.trim()).filter(Boolean)
     if (keywordList.length === 0) return
 
-    const today = new Date()
-    const endDate = today.toISOString().slice(0, 10)
-    const startDate = new Date(today.getTime() - naverDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-
     setNaverLoading(true)
     setNaverError('')
     try {
-      const data = await postJson('/api/naver/trends', {
-        keywords: keywordList,
-        startDate,
-        endDate,
-        timeUnit: 'date',
-      })
-      setNaverResult(data)
+      setNaverResult(await fetchNaverTrends(keywordList, naverDays))
     } catch (e) {
       setNaverError(e.message)
       setNaverResult(null)
@@ -324,11 +334,25 @@ export default function TrendFinderPage() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-900 text-gray-100">
-      <PublicHeader />
+  // 유튜브/소셜 검색 키워드로 네이버 추이를 자동 출력 (최근 30일 기준)
+  async function runSideNaver(keywordList) {
+    if (keywordList.length === 0) {
+      setSideNaver({ loading: false, error: '', result: null })
+      return
+    }
+    setSideNaver({ loading: true, error: '', result: null })
+    try {
+      const data = await fetchNaverTrends(keywordList, 30)
+      setSideNaver({ loading: false, error: '', result: data })
+    } catch (e) {
+      setSideNaver({ loading: false, error: e.message, result: null })
+    }
+  }
 
-      <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+  return (
+    <PublicAppLayout appKey="trend">
+
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
 
         {/* 페이지 타이틀 */}
         <div className="mb-8">
@@ -582,20 +606,27 @@ export default function TrendFinderPage() {
         {!loading && !result && !error && (
           <p className="text-xs text-gray-500 px-1">키워드를 입력하고 "조회수가 터진 영상 찾기" 버튼을 눌러주세요</p>
         )}
+
+        {/* 검색 키워드 기준 네이버 검색 추이 (자동) */}
+        <NaverTrendPanel {...sideNaver} />
         </>
         )}
 
         {(platformTab === 'instagram' || platformTab === 'tiktok') && (
-          <SocialSearchTab
-            platform={platformTab}
-            label={platformTab === 'instagram' ? '인스타그램' : '틱톡'}
-            form={socialForms[platformTab]}
-            onChangeForm={(patch) => updateSocialForm(platformTab, patch)}
-            onSearch={() => handleSocialSearch(platformTab)}
-            loading={socialLoading}
-            error={socialError}
-            result={socialResults[platformTab]}
-          />
+          <>
+            <SocialSearchTab
+              platform={platformTab}
+              label={platformTab === 'instagram' ? '인스타그램' : '틱톡'}
+              form={socialForms[platformTab]}
+              onChangeForm={(patch) => updateSocialForm(platformTab, patch)}
+              onSearch={() => handleSocialSearch(platformTab)}
+              loading={socialLoading}
+              error={socialError}
+              result={socialResults[platformTab]}
+            />
+            {/* 검색 키워드 기준 네이버 검색 추이 (자동) */}
+            <NaverTrendPanel {...sideNaver} />
+          </>
         )}
 
         {platformTab === 'naver' && (
@@ -621,7 +652,7 @@ export default function TrendFinderPage() {
           onMouseLeave={scheduleHideCard}
         />
       )}
-    </div>
+    </PublicAppLayout>
   )
 }
 
@@ -824,5 +855,73 @@ function NaverTrendTab({ keywords, onChangeKeywords, days, onChangeDays, onSearc
         <p className="text-xs text-gray-500 px-1">키워드를 입력하고 "네이버 검색 추이 보기" 버튼을 눌러주세요</p>
       )}
     </>
+  )
+}
+
+// 유튜브/인스타/틱톡 검색 키워드 기준으로 자동 출력되는 네이버 검색 추이 (민트 테마)
+function NaverTrendPanel({ loading, error, result }) {
+  // 검색 전에는 표시하지 않음
+  if (!loading && !error && !result) return null
+
+  return (
+    <div className="mt-8 bg-emerald-500/5 border border-emerald-500/30 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 16 16">
+            <path d="M1 11l4-4 3 3 6-6 1.5 1.5L8 13 5 10l-2.5 2.5L1 11z" />
+          </svg>
+          네이버 검색 추이
+        </span>
+        <span className="text-xs text-gray-400">검색 키워드 기준 최근 30일 자동 분석</span>
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="w-7 h-7 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-lg">{error}</p>
+      )}
+
+      {!loading && result && (
+        <>
+          <div className="bg-gray-800/60 rounded-xl border border-emerald-500/20 p-5 mb-4">
+            <h3 className="text-sm font-bold text-gray-100 mb-3">검색량 추이 (상대값, 최대 100)</h3>
+            <NaverTrendChart results={result.results ?? []} />
+          </div>
+
+          <div className="bg-gray-800/60 rounded-xl border border-emerald-500/20 overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-gray-700/60 text-xs text-gray-500 uppercase">
+                  <th className="px-3 py-3 font-medium text-left">키워드</th>
+                  <th className="px-3 py-3 font-medium text-right">시작값</th>
+                  <th className="px-3 py-3 font-medium text-right">최근값</th>
+                  <th className="px-3 py-3 font-medium text-right">증가폭</th>
+                  <th className="px-3 py-3 font-medium text-right">성장률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(result.growth ?? []).map((row) => (
+                  <tr key={row.keyword} className="border-b border-gray-700/40 last:border-0 hover:bg-gray-700/30 transition-colors">
+                    <td className="px-3 py-3 font-semibold text-gray-100">{row.keyword}</td>
+                    <td className="px-3 py-3 text-right text-gray-300">{Number(row.first).toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right text-gray-300">{Number(row.last).toFixed(1)}</td>
+                    <td className={`px-3 py-3 text-right font-semibold ${row.diff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {row.diff >= 0 ? '+' : ''}{Number(row.diff).toFixed(1)}
+                    </td>
+                    <td className={`px-3 py-3 text-right font-bold ${row.growthRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {row.growthRate == null ? '-' : `${row.growthRate >= 0 ? '+' : ''}${Number(row.growthRate).toFixed(1)}%`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
