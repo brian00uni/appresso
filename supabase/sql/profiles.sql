@@ -12,6 +12,7 @@ create table if not exists public.profiles (
   id         uuid primary key references auth.users(id) on delete cascade,
   email      text,
   role       text not null default 'general' check (role in ('general', 'vip', 'admin')),
+  status     text not null default 'active' check (status in ('active', 'withdrawn')),
   name       text,
   contact    text,
   created_at timestamptz not null default now()
@@ -44,20 +45,39 @@ drop policy if exists "admin read all" on public.profiles;
 create policy "admin read all" on public.profiles
   for select using (public.is_admin());
 
+-- 관리자: 회원 등급/상태 수정
+drop policy if exists "admin update all" on public.profiles;
+create policy "admin update all" on public.profiles
+  for update using (public.is_admin());
+
 -- 신규 가입 시 프로필 자동 생성
+-- 이름/연락처가 없으면 기본값: 이름은 "주인장 01"부터 순번, 연락처는 010-1234-5678
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_role    text := case when new.email = 'admin@appresso.app' then 'admin' else 'general' end;
+  v_name    text := nullif(trim(coalesce(new.raw_user_meta_data->>'name', '')), '');
+  v_contact text := nullif(trim(coalesce(new.raw_user_meta_data->>'contact', '')), '');
+  v_seq     int;
 begin
-  insert into public.profiles (id, email, role)
-  values (
-    new.id,
-    new.email,
-    case when new.email = 'admin@appresso.app' then 'admin' else 'general' end
-  )
+  if v_name is null then
+    -- 기존 "주인장 NN" 중 최대 번호 + 1
+    select coalesce(max((regexp_replace(name, '\D', '', 'g'))::int), 0) + 1
+      into v_seq
+      from public.profiles
+      where name ~ '^주인장 [0-9]+$';
+    v_name := '주인장 ' || lpad(v_seq::text, 2, '0');
+  end if;
+  if v_contact is null then
+    v_contact := '010-1234-5678';
+  end if;
+
+  insert into public.profiles (id, email, role, name, contact)
+  values (new.id, new.email, v_role, v_name, v_contact)
   on conflict (id) do nothing;
   return new;
 end;

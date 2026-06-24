@@ -1,27 +1,71 @@
-import React from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { roleLabel } from '../../lib/accounts'
 
-// 목업 샘플 — 추후 실제 가입자(profiles) 데이터로 교체 예정
-const MOCK_MEMBERS = [
-  { id: 1, name: '김상우', email: 'sangwoo@example.com', contact: '010-1234-5678', role: 'vip', joinedAt: '2026-01-12' },
-  { id: 2, name: '이정민', email: 'jm.lee@example.com', contact: '010-2222-3333', role: 'general', joinedAt: '2026-02-03' },
-  { id: 3, name: '박서연', email: 'seoyeon@example.com', contact: '010-4455-6677', role: 'general', joinedAt: '2026-02-20' },
-  { id: 4, name: '최도현', email: 'dohyun.choi@example.com', contact: '010-7788-9900', role: 'vip', joinedAt: '2026-03-05' },
-  { id: 5, name: '정하늘', email: 'haneul@example.com', contact: '010-1212-3434', role: 'general', joinedAt: '2026-03-18' },
-  { id: 6, name: '관리자', email: 'admin@appresso.app', contact: '010-0000-0000', role: 'admin', joinedAt: '2026-01-01' },
-  { id: 7, name: '범용 계정', email: 'user@appresso.app', contact: '-', role: 'general', joinedAt: '2026-01-01' },
-  { id: 8, name: '한지우', email: 'jiwoo.han@example.com', contact: '010-5656-7878', role: 'general', joinedAt: '2026-04-02' },
+const ROLE_OPTIONS = [
+  { v: 'general', l: '일반회원' },
+  { v: 'vip', l: 'VIP회원' },
+  { v: 'admin', l: '관리자' },
 ]
-
-const ROLE_BADGE = {
-  general: 'bg-gray-500/15 text-gray-300',
-  vip: 'bg-amber-500/15 text-amber-300',
-  admin: 'bg-violet-500/15 text-violet-300',
-}
 
 export default function MembersPage() {
   const role = useAuthStore((s) => s.profile?.role) || 'general'
+  const myId = useAuthStore((s) => s.user?.id)
+
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, name, contact, role, status, created_at')
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      setMembers(data || [])
+    } catch (e) {
+      setError(`회원 목록을 불러오지 못했습니다: ${e.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (role === 'admin') load()
+  }, [role, load])
+
+  async function changeRole(id, newRole) {
+    setBusyId(id)
+    try {
+      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id)
+      if (error) throw error
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, role: newRole } : m)))
+    } catch (e) {
+      alert(`등급 변경 실패: ${e.message}`)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function setStatus(id, status) {
+    const label = status === 'withdrawn' ? '탈퇴 처리' : '복구'
+    if (!window.confirm(`이 회원을 ${label} 하시겠습니까?`)) return
+    setBusyId(id)
+    try {
+      const { error } = await supabase.from('profiles').update({ status }).eq('id', id)
+      if (error) throw error
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)))
+    } catch (e) {
+      alert(`${label} 실패: ${e.message}`)
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   if (role !== 'admin') {
     return (
@@ -33,50 +77,110 @@ export default function MembersPage() {
     )
   }
 
-  const counts = MOCK_MEMBERS.reduce(
-    (acc, m) => ({ ...acc, [m.role]: (acc[m.role] || 0) + 1 }),
-    {}
-  )
+  const active = members.filter((m) => m.status !== 'withdrawn')
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">회원 관리</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          전체 가입자 목록입니다. (총 {MOCK_MEMBERS.length}명 · 일반 {counts.general || 0} · VIP {counts.vip || 0} · 관리자 {counts.admin || 0})
-        </p>
+      <div className="mb-6 flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">회원 관리</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            전체 가입자 {members.length}명 · 활성 {active.length}명 · 탈퇴 {members.length - active.length}명
+          </p>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors disabled:opacity-50"
+        >
+          새로고침
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-x-auto">
-        <table className="w-full text-sm whitespace-nowrap">
-          <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 uppercase">
-              <th className="px-4 py-3 font-medium text-left">이름</th>
-              <th className="px-4 py-3 font-medium text-left">이메일 / 아이디</th>
-              <th className="px-4 py-3 font-medium text-left">연락처</th>
-              <th className="px-4 py-3 font-medium text-center">등급</th>
-              <th className="px-4 py-3 font-medium text-right">가입일</th>
-            </tr>
-          </thead>
-          <tbody>
-            {MOCK_MEMBERS.map((m) => (
-              <tr key={m.id} className="border-b border-gray-100 dark:border-gray-700/40 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-100">{m.name}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.email}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.contact}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_BADGE[m.role] || ROLE_BADGE.general}`}>
-                    {roleLabel(m.role)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{m.joinedAt}</td>
+      {error && (
+        <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-lg mb-4">{error}</p>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700/60 overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 uppercase">
+                <th className="px-4 py-3 font-medium text-left">이름</th>
+                <th className="px-4 py-3 font-medium text-left">이메일 / 아이디</th>
+                <th className="px-4 py-3 font-medium text-left">연락처</th>
+                <th className="px-4 py-3 font-medium text-left">등급</th>
+                <th className="px-4 py-3 font-medium text-center">상태</th>
+                <th className="px-4 py-3 font-medium text-right">가입일</th>
+                <th className="px-4 py-3 font-medium text-right">관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {members.map((m) => {
+                const withdrawn = m.status === 'withdrawn'
+                const isSelf = m.id === myId
+                return (
+                  <tr key={m.id} className={`border-b border-gray-100 dark:border-gray-700/40 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${withdrawn ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-100">{m.name || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.email}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.contact || '-'}</td>
+                    <td className="px-4 py-3">
+                      {m.role === 'admin' ? (
+                        // 관리자 등급은 변경 불가
+                        <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400">관리자</span>
+                      ) : (
+                        <select
+                          value={m.role}
+                          disabled={busyId === m.id || withdrawn}
+                          onChange={(e) => changeRole(m.id, e.target.value)}
+                          className="text-sm bg-transparent border border-gray-200 dark:border-gray-700/60 text-gray-700 dark:text-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                        >
+                          {ROLE_OPTIONS.filter((o) => o.v !== 'admin').map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+                        </select>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${withdrawn ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+                        {withdrawn ? '탈퇴' : '활성'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{(m.created_at || '').slice(0, 10)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {withdrawn ? (
+                        <button
+                          onClick={() => setStatus(m.id, 'active')}
+                          disabled={busyId === m.id}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                        >
+                          복구
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setStatus(m.id, 'withdrawn')}
+                          disabled={busyId === m.id || isSelf}
+                          title={isSelf ? '본인 계정은 여기서 탈퇴할 수 없습니다' : ''}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
+                        >
+                          탈퇴
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+              {members.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 dark:text-gray-500">가입자가 없습니다.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">* 현재는 샘플(목업) 데이터이며, 실제 가입자 연동 시 교체됩니다.</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">* 등급 변경은 즉시 반영됩니다. 탈퇴는 소프트 삭제(상태 변경)이며 로그인이 차단됩니다.</p>
     </div>
   )
 }

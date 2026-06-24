@@ -6,7 +6,7 @@ import GaseongbiSidebar from '../partials/gaseongbi/GaseongbiSidebar'
 import GaseongbiHeader from '../partials/gaseongbi/GaseongbiHeader'
 
 export default function DashboardLayout() {
-  const { user, loading } = useAuthStore()
+  const { user, loading, profile, signOut } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
@@ -21,6 +21,13 @@ export default function DashboardLayout() {
       active = false
     }
   }, [user?.id])
+
+  // 탈퇴(withdrawn) 계정은 로그인 차단
+  useEffect(() => {
+    if (profile?.status === 'withdrawn') signOut()
+  }, [profile?.status, signOut])
+
+  if (profile?.status === 'withdrawn') return <Navigate to="/login" replace />
 
   if (loading || (user && !hydrated)) {
     return (

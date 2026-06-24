@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { roleLabel, GENERAL_SHARED_EMAIL } from '../../lib/accounts'
+import { roleLabel, GENERAL_SHARED_EMAIL, SHARED_ACCOUNTS } from '../../lib/accounts'
+
+const SHARED_EMAILS = Object.values(SHARED_ACCOUNTS).map((a) => a.email)
 
 const ROLE_BADGE = {
   general: 'bg-gray-500/15 text-gray-300',
@@ -13,10 +16,15 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
   const loadProfile = useAuthStore((s) => s.loadProfile)
+  const signOut = useAuthStore((s) => s.signOut)
+  const navigate = useNavigate()
 
   const role = profile?.role || 'general'
   const email = profile?.email || user?.email || ''
   const isGeneralShared = email === GENERAL_SHARED_EMAIL
+  const isShared = SHARED_EMAILS.includes(email) // 범용/관리자 공유 계정은 탈퇴 숨김
+
+  const [withdrawing, setWithdrawing] = useState(false)
 
   // 기본정보
   const [name, setName] = useState('')
@@ -77,6 +85,21 @@ export default function ProfilePage() {
       setPwMsg(`변경 실패: ${e.message}`)
     } finally {
       setPwSaving(false)
+    }
+  }
+
+  async function withdraw() {
+    if (!user) return
+    if (!window.confirm('정말 탈퇴하시겠습니까? 탈퇴 후에는 로그인할 수 없습니다.')) return
+    setWithdrawing(true)
+    try {
+      const { error } = await supabase.from('profiles').update({ status: 'withdrawn' }).eq('id', user.id)
+      if (error) throw error
+      await signOut()
+      navigate('/', { replace: true })
+    } catch (e) {
+      alert(`탈퇴 실패: ${e.message}`)
+      setWithdrawing(false)
     }
   }
 
@@ -154,6 +177,22 @@ export default function ProfilePage() {
             {pwMsg && <span className="text-xs text-gray-500 dark:text-gray-400">{pwMsg}</span>}
           </div>
         </form>
+      )}
+
+      {/* 회원 탈퇴 — 공유 계정(범용/관리자)은 숨김 */}
+      {!isShared && (
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl border border-red-500/30 p-6">
+          <h2 className="text-sm font-bold text-red-500 dark:text-red-400 mb-1">회원 탈퇴</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">탈퇴 시 계정이 비활성화되며 더 이상 로그인할 수 없습니다.</p>
+          <button
+            type="button"
+            onClick={withdraw}
+            disabled={withdrawing}
+            className="btn bg-red-500 hover:bg-red-600 text-white text-sm px-5 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            {withdrawing ? '처리 중...' : '회원 탈퇴'}
+          </button>
+        </div>
       )}
     </div>
   )
