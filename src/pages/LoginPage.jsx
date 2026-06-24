@@ -8,7 +8,7 @@ import appressoLogo from '../assets/appresso-logo.png'
 // 범용 계정 (플레이스홀더로 고정 표시 / 포커스·엔터 시 자동 입력)
 const GENERAL = SHARED_ACCOUNTS.user
 
-export default function LoginPage() {
+export default function LoginPage({ allowSignup = true }) {
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
@@ -20,10 +20,14 @@ export default function LoginPage() {
   const [pwFocused, setPwFocused] = useState(false)
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
+  const profileLoaded = useAuthStore((s) => s.profileLoaded)
 
+  // 로그인되면 역할에 따라 이동: 관리자 → 관리자 콘솔, 그 외 → 가성비대장
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true })
-  }, [user, navigate])
+    if (!user || !profileLoaded) return
+    navigate(profile?.role === 'admin' ? '/admin' : '/dashboard', { replace: true })
+  }, [user, profile, profileLoaded, navigate])
 
   function switchMode(next) {
     setMode(next)
@@ -104,27 +108,29 @@ export default function LoginPage() {
 
         {/* 폼 */}
         <div className="bg-gray-800 rounded-xl border border-gray-700/60 p-6">
-          {/* 탭 토글 */}
-          <div className="flex items-center bg-gray-700/40 rounded-lg p-1 mb-5">
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
-                isLogin ? 'bg-violet-500 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              로그인
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('signup')}
-              className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
-                !isLogin ? 'bg-violet-500 text-white' : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              회원가입
-            </button>
-          </div>
+          {/* 탭 토글 (회원가입 허용 시에만) */}
+          {allowSignup && (
+            <div className="flex items-center bg-gray-700/40 rounded-lg p-1 mb-5">
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+                  isLogin ? 'bg-violet-500 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                로그인
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('signup')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+                  !isLogin ? 'bg-violet-500 text-white' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                회원가입
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -172,18 +178,20 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* 모드 전환 링크 */}
-          <div className="text-center mt-4">
-            {isLogin ? (
-              <button onClick={() => switchMode('signup')} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                계정이 없나요? 회원가입
-              </button>
-            ) : (
-              <button onClick={() => switchMode('login')} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                이미 계정이 있나요? 로그인
-              </button>
-            )}
-          </div>
+          {/* 모드 전환 링크 (회원가입 허용 시에만) */}
+          {allowSignup && (
+            <div className="text-center mt-4">
+              {isLogin ? (
+                <button onClick={() => switchMode('signup')} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
+                  계정이 없나요? 회원가입
+                </button>
+              ) : (
+                <button onClick={() => switchMode('login')} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
+                  이미 계정이 있나요? 로그인
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="text-center mt-4 space-y-2">

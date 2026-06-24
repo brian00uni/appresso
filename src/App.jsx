@@ -31,7 +31,11 @@ import BenchmarkingPage from './pages/dashboard/gaseongbi/BenchmarkingPage'
 import AdAnalysisPage from './pages/dashboard/gaseongbi/AdAnalysisPage'
 import SettingsPage from './pages/dashboard/gaseongbi/SettingsPage'
 import ProfilePage from './pages/dashboard/ProfilePage'
-import MembersPage from './pages/dashboard/MembersPage'
+
+// 통합 관리자 콘솔
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminMembersPage from './pages/admin/MembersPage'
+import AdminVisitsPage from './pages/admin/VisitsPage'
 
 function AppRoutes() {
   useAuth()
@@ -53,6 +57,7 @@ function AppRoutes() {
       <Route path="/apps/fortune-cookie" element={<FortuneCookie />} />
       <Route path="/apps/lotto" element={<LottoRecommend />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<LoginPage allowSignup={false} />} />
       <Route path="/dashboard/report/detail" element={<ProfitReportDetailPage />} />
 
       {/* 대시보드 (로그인 필요) — 가성비대장 */}
@@ -66,9 +71,15 @@ function AppRoutes() {
         <Route path="benchmark" element={<BenchmarkingPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="members" element={<MembersPage />} />
         <Route path="apps/fortune-cookie" element={<FortuneCookie />} />
         <Route path="apps/lotto" element={<LottoRecommend />} />
+      </Route>
+
+      {/* 통합 관리자 콘솔 (admin 전용) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminVisitsPage />} />
+        <Route path="visits" element={<AdminVisitsPage />} />
+        <Route path="members" element={<AdminMembersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

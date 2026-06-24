@@ -2,8 +2,11 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 // import PublicHeader from '../../partials/PublicHeader'
 import appressoLogo from '../../assets/appresso-logo.png'
-import VisitCounter from '../../components/VisitCounter'
 import { useVisit } from '../../lib/visits'
+
+function fmtCount(n) {
+  return n == null ? '–' : Number(n).toLocaleString('ko-KR')
+}
 
 // Funny App을 별도 팝업창으로 띄운다 (AppsPage와 동일 방식)
 function openApp(e, appId) {
@@ -42,6 +45,17 @@ const services = [
   },
 ]
 
+// AI 서비스 (외부 링크)
+const aiServices = [
+  {
+    href: 'https://ttsstudio.vercel.app/',
+    name: 'TTS Studio',
+    emoji: '🎙️',
+    desc: 'AI 음성으로 콘텐츠를 만들어보세요',
+    color: 'from-sky-500/20 to-cyan-500/20 border-sky-500/30',
+  },
+]
+
 // 하단 Funny App (팝업 링크)
 const apps = [
   {
@@ -67,11 +81,19 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* <PublicHeader /> */}
 
+      {/* 관리자 로그인 진입 (눈에 띄지 않게 우측 상단 고정) */}
+      <Link
+        to="/admin/login"
+        className="fixed top-3 right-4 z-50 text-xs text-gray-700 hover:text-gray-400 transition-colors"
+      >
+        admin
+      </Link>
+
       <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
         {/* Hero */}
         <div className="mb-10 text-center">
           <img src={appressoLogo} alt="appresso" className="h-24 md:h-32 w-auto mx-auto" />
-          <p className="text-gray-400 mt-4 text-sm md:text-base">
+          <p className="text-gray-500 text-sm md:text-base">
             원하는 서비스를 골라 들어가보세요
           </p>
         </div>
@@ -98,6 +120,34 @@ export default function HomePage() {
                   </svg>
                 </div>
               </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* AI 서비스 */}
+        <section className="mb-12">
+          <h2 className="text-lg font-bold text-gray-200 mb-4">AI 서비스</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {aiServices.map((s) => (
+              <a
+                key={s.href}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`bg-gradient-to-br ${s.color} bg-gray-800 border rounded-2xl p-6 hover:scale-[1.02] transition-transform group`}
+              >
+                <div className="text-5xl mb-4">{s.emoji}</div>
+                <h3 className="text-xl font-bold text-gray-100 group-hover:text-violet-400 transition-colors">
+                  {s.name}
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">{s.desc}</p>
+                <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-medium">
+                  <span>바로가기</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9M17 7v8" />
+                  </svg>
+                </div>
+              </a>
             ))}
           </div>
         </section>
@@ -135,9 +185,19 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 사이트 방문 카운터 */}
-        <footer className="mt-12 pt-8 border-t border-gray-800 flex justify-center">
-          <VisitCounter counts={counts} className="w-full max-w-xs" />
+        {/* 사이트 방문 카운터 — 100% 폭 한 줄 */}
+        <footer className="mt-12 pt-6 border-t border-gray-800">
+          <div className="w-full flex flex-wrap items-center justify-between gap-x-8 gap-y-2 text-sm bg-gradient-to-br  bg-gray-700 p-2 px-5  rounded-2xl ">
+            <span className="text-xs uppercase tracking-wide text-gray-500">사이트 방문</span>
+            <div className="flex items-center gap-8">
+              <span className="text-gray-400">
+                전체 <b className="text-gray-100 tabular-nums ml-1">{fmtCount(counts?.siteTotal)}</b>
+              </span>
+              <span className="text-gray-400">
+                오늘 <b className="text-violet-400 tabular-nums ml-1">{fmtCount(counts?.siteToday)}</b>
+              </span>
+            </div>
+          </div>
         </footer>
       </main>
     </div>

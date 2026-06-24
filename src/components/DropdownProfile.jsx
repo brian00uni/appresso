@@ -87,6 +87,17 @@ function DropdownProfile({
             <div className="text-xs text-violet-500 dark:text-violet-400 font-medium">{roleText}</div>
           </div>
           <ul>
+            {profile?.role === 'admin' && (
+              <li>
+                <Link
+                  className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3"
+                  to="/admin"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  관리자 콘솔
+                </Link>
+              </li>
+            )}
             <li>
               <Link
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3"

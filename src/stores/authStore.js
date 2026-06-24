@@ -6,6 +6,7 @@ export const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
   profile: null, // { id, email, role: 'general'|'vip'|'admin', name, contact }
+  profileLoaded: false, // 프로필 1회 조회 완료 여부 (null=없음과 구분)
   loading: true,
   setSession: (session) => set({ session, user: session?.user ?? null }),
   setLoading: (loading) => set({ loading }),
@@ -14,19 +15,19 @@ export const useAuthStore = create((set, get) => ({
   loadProfile: async () => {
     const user = get().user
     if (!user) {
-      set({ profile: null })
+      set({ profile: null, profileLoaded: true })
       return
     }
     try {
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-      set({ profile: data ?? null })
+      set({ profile: data ?? null, profileLoaded: true })
     } catch {
-      set({ profile: null })
+      set({ profile: null, profileLoaded: true })
     }
   },
   signOut: async () => {
     await supabase.auth.signOut()
     resetLocal()
-    set({ user: null, session: null, profile: null })
+    set({ user: null, session: null, profile: null, profileLoaded: true })
   },
 }))

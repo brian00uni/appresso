@@ -170,11 +170,11 @@ export default function GaseongbiSidebar({ sidebarOpen, setSidebarOpen }) {
             </li>
           ))}
 
-          {/* 관리자 전용 */}
+          {/* 관리자 콘솔 바로가기 (admin 전용) */}
           {isAdmin && (
             <li>
               <NavLink
-                to="/dashboard/members"
+                to="/admin"
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -185,9 +185,9 @@ export default function GaseongbiSidebar({ sidebarOpen, setSidebarOpen }) {
                 }
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 16 16">
-                  <path d="M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1 14a4.5 4.5 0 0 1 9 0H1Zm10.5-7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-.5 1.5c2.1 0 3.8 1.5 4 3.5h-3.2a5.99 5.99 0 0 0-1.6-3.4c.26-.06.53-.1.8-.1Z" />
+                  <path d="M8 0l7 3v5c0 3.5-2.6 6.7-7 8-4.4-1.3-7-4.5-7-8V3l7-3zm0 2.2L3 4.3V8c0 2.5 1.8 4.9 5 6 3.2-1.1 5-3.5 5-6V4.3L8 2.2z" />
                 </svg>
-                <span>회원관리</span>
+                <span>관리자 콘솔</span>
               </NavLink>
             </li>
           )}
