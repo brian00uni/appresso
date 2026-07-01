@@ -61,6 +61,13 @@ const aiServices = [
     desc: 'AI로 이미지를 일괄 자동 생성해보세요',
     color: 'from-amber-500/20 to-yellow-500/20 border-amber-500/30',
   },
+  {
+    href: '/eraser-studio',
+    name: 'Eraser Studio',
+    emoji: '🧽',
+    desc: '영상 속 자막을 AI로 깔끔하게 지워보세요',
+    color: 'from-violet-500/20 to-indigo-500/20 border-violet-500/30',
+  },
 ]
 
 // 하단 Funny App (팝업 링크)

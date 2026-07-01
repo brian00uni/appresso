@@ -31,3 +31,4 @@ src_backup
 *.njsproj
 *.sln
 *.sw?
+.vercel
