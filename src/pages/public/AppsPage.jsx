@@ -27,6 +27,13 @@ const appList = [
     desc: '당첨번호 빈도·패턴 분석으로 추천번호를 받아보세요',
     color: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/30',
   },
+  {
+    id: 'lotto-machine',
+    name: '로또 뽑기',
+    emoji: '🎰',
+    desc: '유리통 속 볼이 날아다녀요. 버튼을 누르면 번호가 하나씩!',
+    color: 'from-sky-500/20 to-emerald-500/20 border-sky-500/30',
+  },
   // 앱 추가 예정
 ]
 

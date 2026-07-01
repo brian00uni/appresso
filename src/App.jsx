@@ -16,6 +16,7 @@ import LoginPage from './pages/LoginPage'
 // App pages (standalone, no layout)
 import FortuneCookie from './pages/apps/FortuneCookie'
 import LottoRecommend from './pages/apps/LottoRecommend'
+import LottoMachine from './pages/apps/LottoMachine'
 import ArtStudioPage from './pages/artStudio/ArtStudioPage'
 
 // Dashboard layout + pages
@@ -57,6 +58,7 @@ function AppRoutes() {
       <Route path="/apps" element={<AppsPage />} />
       <Route path="/apps/fortune-cookie" element={<FortuneCookie />} />
       <Route path="/apps/lotto" element={<LottoRecommend />} />
+      <Route path="/apps/lotto-machine" element={<LottoMachine />} />
       <Route path="/art-studio" element={<ArtStudioPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<LoginPage allowSignup={false} />} />
@@ -75,6 +77,7 @@ function AppRoutes() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="apps/fortune-cookie" element={<FortuneCookie />} />
         <Route path="apps/lotto" element={<LottoRecommend />} />
+        <Route path="apps/lotto-machine" element={<LottoMachine />} />
       </Route>
 
       {/* 통합 관리자 콘솔 (admin 전용) */}
