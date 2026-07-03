@@ -1,0 +1,90 @@
+{
+  "manifest_version": 3,
+  "name": "VideoDL Studio",
+  "description": "더우인·틱톡·레드노트(샤오홍슈) 영상을 한 번에 추출·다운로드합니다.",
+  "version": "0.1.0",
+  "version_name": "v20260704a",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "tabs",
+    "downloads",
+    "storage",
+    "declarativeNetRequest",
+    "scripting"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "externally_connectable": {
+    "matches": ["http://localhost:5173/*", "https://appresso.vercel.app/*"]
+  },
+  "action": {
+    "default_title": "VideoDL Studio"
+  },
+  "icons": {
+    "16": "ico/videodl-icon.png",
+    "48": "ico/videodl-icon.png",
+    "128": "ico/videodl-icon.png"
+  },
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1/*",
+        "http://127.0.0.1:*/*",
+        "https://appresso.vercel.app/*"
+      ],
+      "run_at": "document_start",
+      "js": ["content-scripts/appresso-detect.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
+      "js": ["content-scripts/aliprice.js"]
+    },
+    {
+      "matches": ["https://detail.1688.com/*"],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-1688-main.js"],
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://detail.1688.com/*"],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-1688.js"]
+    },
+    {
+      "matches": ["https://www.douyin.com/video/*"],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-douyin.js"]
+    },
+    {
+      "matches": ["https://www.tiktok.com/*"],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-tiktok.js"]
+    },
+    {
+      "matches": [
+        "https://www.rednote.com/discovery/item/*",
+        "https://www.rednote.com/explore/*",
+        "https://www.xiaohongshu.com/discovery/item/*",
+        "https://www.xiaohongshu.com/explore/*"
+      ],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-xhs-main.js"],
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.rednote.com/discovery/item/*",
+        "https://www.rednote.com/explore/*",
+        "https://www.xiaohongshu.com/discovery/item/*",
+        "https://www.xiaohongshu.com/explore/*"
+      ],
+      "run_at": "document_idle",
+      "js": ["content-scripts/detail-xhs.js"]
+    }
+  ]
+}

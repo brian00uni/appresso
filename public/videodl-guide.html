@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideoDL Studio — 사용자 가이드</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+    :root {
+      --bg: #252525; --surface: #1a1a1a; --surface2: #242424; --border: #2e2e2e;
+      --gold: #edaf20; --gold-dim: rgba(237,175,32,0.12); --gold-border: rgba(237,175,32,0.3);
+      --text: #e2e2e2; --text-dim: #888; --blue: #3b82f6; --green: #22c55e; --red: #ef4444;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.75; font-size: 15px; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 0 20px 80px; }
+    .hero {
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1208 50%, #0f0f0f 100%);
+      border-bottom: 1px solid var(--gold-border); padding: 40px 20px; text-align: center; margin-bottom: 32px;
+    }
+    .hero h1 { font-size: 30px; font-weight: 900; color: var(--gold); letter-spacing: -0.5px; }
+    .hero p { color: var(--text-dim); margin-top: 8px; font-size: 14px; }
+    h2 {
+      font-size: 20px; font-weight: 700; color: var(--gold); margin: 36px 0 14px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    p { margin: 10px 0; }
+    ul, ol { margin: 10px 0 10px 22px; }
+    li { margin: 6px 0; }
+    strong { color: var(--gold); }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace; background: var(--surface);
+      color: #7dd3fc; border-radius: 6px;
+    }
+    code { padding: 2px 7px; font-size: 13px; }
+    pre { padding: 16px; overflow-x: auto; border: 1px solid var(--border); margin: 12px 0; line-height: 1.6; }
+    pre code { background: none; padding: 0; color: var(--text); }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+    th, td { border: 1px solid var(--border); padding: 9px 12px; text-align: left; }
+    th { background: var(--surface); color: var(--gold); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin: 14px 0; }
+    .note { border-left: 3px solid var(--gold); background: var(--gold-dim); padding: 12px 16px; border-radius: 6px; margin: 14px 0; font-size: 14px; }
+    .step-num { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; background: var(--gold-dim); color: var(--gold); font-weight: 700; align-items: center; justify-content: center; margin-right: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>📥 VideoDL Studio 사용 가이드</h1>
+    <p>더우인 · 틱톡 · 레드노트(샤오홍슈)에서 영상을 한 번에 추출·다운로드하는 Chrome 익스텐션</p>
+  </div>
+
+  <div class="wrap">
+    <h2>1. 설치</h2>
+    <ol>
+      <li><strong>확장앱 zip 받기</strong> — 랜딩 페이지의 “확장앱 다운로드 (.zip)” 버튼</li>
+      <li>Chrome 주소창에 <code>chrome://extensions</code> 입력</li>
+      <li>우측 상단 <strong>개발자 모드</strong> 토글 ON</li>
+      <li>zip을 풀어 생긴 <code>videoDlStudio</code> 폴더를 “압축해제된 확장 프로그램을 로드”로 선택 (또는 zip을 페이지에 드래그 앤 드롭)</li>
+      <li>목록에 <strong>VideoDL Studio</strong>가 나타나면 완료</li>
+    </ol>
+    <div class="note">우측 상단 퍼즐 아이콘 → <strong>VideoDL Studio</strong> 핀 고정 → 아이콘 클릭 시 사이드패널이 우측에 열립니다.</div>
+
+    <h2>2. 지원 사이트</h2>
+    <table>
+      <thead><tr><th>사이트</th><th>도메인</th><th>추출 항목</th></tr></thead>
+      <tbody>
+        <tr><td>더우인</td><td>douyin.com</td><td>영상</td></tr>
+        <tr><td>틱톡</td><td>tiktok.com</td><td>영상</td></tr>
+        <tr><td>레드노트(샤오홍슈)</td><td>rednote.com / xiaohongshu.com</td><td>영상</td></tr>
+      </tbody>
+    </table>
+
+    <h2>3. 기본 사용 흐름</h2>
+    <div class="card">
+      <p><span class="step-num">1</span><strong>카드 선택</strong> — 지원 사이트 검색 결과 페이지로 가면 각 카드에 체크박스가 자동 표시됩니다. 다운로드할 카드를 클릭해 체크합니다.</p>
+      <p><span class="step-num">2</span><strong>미디어 추출</strong> — 하단 <strong>N개 선택됨 / 미디어 추출</strong> 버튼 클릭. 익스텐션이 백그라운드에서 각 상세페이지를 차례로 열어 영상 URL을 추출하고, 진행 상황을 사이드패널에서 실시간으로 보여줍니다. 완료된 탭은 자동으로 닫힙니다.</p>
+      <p><span class="step-num">3</span><strong>다운로드</strong> — 사이드패널 하단 <strong>전체 다운로드(N)</strong>로 모든 미디어를 한 번에 받습니다. 각 카드의 ⬇ 아이콘으로 개별 다운로드도 가능합니다.</p>
+      <p><span class="step-num">4</span><strong>초기화</strong> — 다운로드가 끝나면 세션·로그·선택이 자동 초기화됩니다. 수동으로 비우려면 사이드패널 하단 <strong>초기화</strong> 버튼을 누릅니다.</p>
+    </div>
+
+    <h2>4. 다운로드 폴더 구조</h2>
+    <p>브라우저 기본 다운로드 폴더 안에 다음 형식으로 자동 분류 저장됩니다.</p>
+    <pre><code>~/Downloads/
+└── videodl-studio/
+    └── 2026-07-04/              ← 날짜 (YYYY-MM-DD)
+        └── 13_32_50_tiktok/     ← HH_MM_SS_플랫폼
+            ├── video1.mp4
+            ├── video2.mp4
+            └── video3.mp4</code></pre>
+
+    <h2>5. 트러블슈팅</h2>
+    <ul>
+      <li><strong>추출이 도중에 멈춰요</strong> — TikTok 데이터 로드 전 타임아웃일 수 있습니다. 사이드패널의 <strong>재시도</strong> 버튼으로 실패한 항목만 다시 추출하세요. 사이트가 로그인을 요구하면 새 탭에서 로그인 후 재시도합니다.</li>
+      <li><strong>카드에 체크박스가 안 보여요</strong> — 페이지를 새로고침한 뒤 다시 확인합니다. 사이트 레이아웃 변경으로 일시적으로 호환이 깨질 수 있어요.</li>
+    </ul>
+
+    <h2>6. 알려진 제한 사항</h2>
+    <ul>
+      <li>한 세션에서는 <strong>같은 플랫폼 카드만</strong> 묶어 추출하는 것을 권장합니다. (다른 플랫폼 카드를 섞으면 첫 카드 기준으로 폴더가 잡힙니다.)</li>
+      <li>매우 긴 영상은 다운로드에 시간이 걸릴 수 있습니다.</li>
+    </ul>
+
+    <h2>7. 업데이트 방법</h2>
+    <p>기존 폴더 위에 새 zip 내용을 <strong>덮어쓴 뒤</strong> <code>chrome://extensions</code>에서 다시 로드(새로고침)합니다.</p>
+  </div>
+</body>
+</html>

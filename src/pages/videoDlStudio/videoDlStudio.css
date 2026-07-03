@@ -1,0 +1,37 @@
+/* VideoDL Studio — art-studio 골드 다크 테마(artStudio.css)를 그대로 재사용한다.
+   레이아웃(2단 그리드)·컴포넌트 클래스(.is-*)는 artStudio.css 정의를 그대로 사용하므로
+   전역 규칙은 재정의하지 않는다. VideoDL 전용은 .vdl-page 스코프로만 추가한다. */
+
+/* 지원 사이트 — 크게 보이는 버튼 그리드 */
+.vdl-page .vdl-sites {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.vdl-page .vdl-site {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--is-surface2);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-radius);
+  padding: 16px 10px;
+  color: var(--is-text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .12s;
+}
+.vdl-page .vdl-site:hover {
+  border-color: var(--is-gold);
+  color: var(--is-gold);
+  background: var(--is-gold-dim);
+}
+.vdl-page .vdl-site-emoji { font-size: 28px; line-height: 1; }
+.vdl-page .vdl-site-name { font-size: 14px; font-weight: 700; }
+.vdl-page .vdl-site-arrow { font-size: 11px; color: var(--is-dim); font-weight: 600; }
+.vdl-page .vdl-site:hover .vdl-site-arrow { color: var(--is-gold); }
+
+@media (max-width: 520px) {
+  .vdl-page .vdl-sites { grid-template-columns: 1fr; }
+}

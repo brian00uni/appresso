@@ -68,6 +68,13 @@ const aiServices = [
     desc: '영상 속 자막을 AI로 깔끔하게 지워보세요',
     color: 'from-violet-500/20 to-indigo-500/20 border-violet-500/30',
   },
+  {
+    href: '/video-dl-studio',
+    name: 'VideoDL Studio',
+    emoji: '📥',
+    desc: '더우인·틱톡·레드노트 영상을 한 번에 다운로드',
+    color: 'from-orange-500/20 to-amber-500/20 border-orange-500/30',
+  },
 ]
 
 // 하단 Funny App (팝업 링크)
