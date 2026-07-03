@@ -1,0 +1,19 @@
+# 의존성
+node_modules/
+
+# 로그인 세션 (쿠키/인증 토큰 포함 — 절대 커밋 금지)
+auth/
+*.session.json
+
+# 로그/임시
+*.log
+.DS_Store
+
+# 분석 산출물 (스크린샷·DOM 덤프 — 개인 글 내용 포함 가능)
+inspect/
+
+# 로컬 설정(블로그 ID 등)
+settings.json
+
+# API 키
+.env

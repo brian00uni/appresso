@@ -1,0 +1,21 @@
+{
+  "name": "writing-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Writing Studio — 네이버 블로그 반자동 글쓰기 봇 (콘텐츠 자동 생성 + 스마트에디터 자동 입력, 발행은 사람이)",
+  "scripts": {
+    "ui": "node server.js",
+    "login": "node src/saveSession.js",
+    "check": "node src/checkSession.js",
+    "inspect": "node src/inspectEditor.js",
+    "fill": "node src/fillEditor.js",
+    "generate": "node src/generate.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "@google/genai": "^2.10.0",
+    "express": "^4.21.2",
+    "playwright": "^1.61.1"
+  }
+}
