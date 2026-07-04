@@ -75,6 +75,13 @@ const aiServices = [
     desc: '더우인·틱톡·레드노트 영상을 한 번에 다운로드',
     color: 'from-orange-500/20 to-amber-500/20 border-orange-500/30',
   },
+  {
+    href: '/writing-studio',
+    name: 'Writing Studio',
+    emoji: '📝',
+    desc: '네이버 블로그 글을 AI로 쓰고 자동으로 채워보세요',
+    color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
+  },
 ]
 
 // 하단 Funny App (팝업 링크)

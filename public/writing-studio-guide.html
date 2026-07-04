@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Writing Studio — 사용자 가이드</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+    :root {
+      --bg:#252525; --surface:#1a1a1a; --border:#2e2e2e; --gold:#edaf20;
+      --gold-dim:rgba(237,175,32,0.12); --gold-border:rgba(237,175,32,0.3);
+      --text:#e2e2e2; --text-dim:#888; --green:#22c55e; --red:#ef4444; --radius:10px;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Noto Sans KR',-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.75; font-size:15px; }
+    .wrap { max-width:780px; margin:0 auto; padding:0 20px 80px; }
+    .hero { background:linear-gradient(135deg,#0f0f0f 0%,#1a1208 50%,#0f0f0f 100%);
+      border-bottom:1px solid var(--gold-border); padding:40px 20px; text-align:center; margin-bottom:32px; }
+    .hero h1 { font-size:30px; font-weight:900; color:var(--gold); letter-spacing:-0.5px; }
+    .hero p { color:var(--text-dim); margin-top:8px; font-size:14px; }
+    h2 { font-size:20px; font-weight:700; color:var(--gold); margin:36px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    p { margin:10px 0; }
+    ul, ol { margin:10px 0 10px 22px; } li { margin:6px 0; }
+    strong { color:var(--gold); }
+    code { font-family:'JetBrains Mono',monospace; background:var(--surface); color:#7dd3fc; border-radius:6px; padding:2px 7px; font-size:13px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin:14px 0; }
+    .note { border-left:3px solid var(--gold); background:var(--gold-dim); padding:12px 16px; border-radius:6px; margin:14px 0; font-size:14px; }
+    .safe { border-left:3px solid var(--green); background:rgba(34,197,94,.1); padding:12px 16px; border-radius:6px; margin:14px 0; font-size:14px; }
+    .step-num { display:inline-flex; width:24px; height:24px; border-radius:50%; background:var(--gold-dim); color:var(--gold);
+      font-weight:700; align-items:center; justify-content:center; margin-right:8px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>📝 Writing Studio 사용 가이드</h1>
+    <p>AI로 네이버 블로그 글을 쓰고 스마트에디터에 자동으로 채우는 크롬 확장앱</p>
+  </div>
+
+  <div class="wrap">
+    <div class="safe">
+      <b>안전 설계</b> — 내 브라우저의 네이버 로그인을 그대로 사용하므로 아이디/비번 자동 로그인이 없고,
+      <b>발행은 사람이 직접</b> 검수 후 합니다. 자동 발행하지 않아 계정 리스크가 낮아요.
+    </div>
+
+    <h2>1. 설치</h2>
+    <ol>
+      <li>랜딩 페이지의 <strong>“확장앱 다운로드 (.zip)”</strong> 버튼으로 zip을 받습니다.</li>
+      <li>zip을 풀어 <code>writing-studio</code> 폴더를 만듭니다.</li>
+      <li>Chrome 주소창에 <code>chrome://extensions</code> 입력 → 우측 상단 <strong>개발자 모드</strong> ON</li>
+      <li><strong>“압축해제된 확장 프로그램을 로드”</strong> → <code>writing-studio</code> 폴더 선택</li>
+      <li>목록에 <strong>Writing Studio</strong>가 뜨면 완료 → 퍼즐 아이콘에서 핀 고정</li>
+    </ol>
+
+    <h2>2. Gemini API 키 (무료)</h2>
+    <p>글 생성은 Google <strong>Gemini 무료 티어</strong>로 동작해요. 카드 등록 없이 무료로 시작할 수 있습니다.</p>
+    <ol>
+      <li><code>aistudio.google.com</code> 접속 → 구글 로그인</li>
+      <li><strong>“Get API key” → “Create API key”</strong></li>
+      <li>발급된 키를 복사</li>
+      <li>확장앱 아이콘 클릭 → 사이드패널의 <strong>🔑 Gemini API 키</strong>에 붙여넣고 <strong>키 저장</strong></li>
+    </ol>
+    <div class="note">무료 티어는 분당/일일 요청 한도가 있어요. 한도 초과 시 잠시(1분쯤) 뒤 다시 시도하면 됩니다.</div>
+
+    <h2>3. 글 생성</h2>
+    <div class="card">
+      <p><span class="step-num">1</span><strong>주제</strong> 입력 (예: 초보자를 위한 가계부 쓰는 법)</p>
+      <p><span class="step-num">2</span><strong>키워드</strong>(선택) · <strong>톤/느낌</strong> 선택 (친근하게 / 후킹 강하게 / 여성스럽게 …)</p>
+      <p><span class="step-num">3</span><strong>내용 프롬프트</strong>(선택) — 글에 꼭 넣고 싶은 구성·내용을 적으면 반영돼요</p>
+      <p><span class="step-num">4</span><strong>“글 생성하기”</strong> → 제목·본문·태그 미리보기 확인</p>
+    </div>
+
+    <h2>4. 에디터에 채우기 → 발행</h2>
+    <ol>
+      <li>네이버 블로그 <strong>글쓰기 페이지</strong>를 엽니다.</li>
+      <li>사이드패널에서 <strong>“에디터에 채우기”</strong> 클릭 → 제목·본문이 자동 입력돼요.</li>
+      <li>내용을 <strong>검수</strong>하고, 이미지·서식을 다듬은 뒤 <strong>직접 발행</strong>합니다.</li>
+    </ol>
+    <div class="note">스마트에디터는 자체 편집 방식을 써서, 사이트 업데이트 시 자동 입력이 일시적으로 어긋날 수 있어요.
+      그럴 땐 글쓰기 페이지를 새로고침한 뒤 다시 시도해 주세요.</div>
+
+    <h2>5. 트러블슈팅</h2>
+    <ul>
+      <li><strong>“글쓰기 페이지를 열어주세요”</strong> — 네이버 블로그 글쓰기 화면(주소에 blog.naver.com)에서 눌러야 해요.</li>
+      <li><strong>“스크립트가 아직 로드되지 않았어요”</strong> — 글쓰기 페이지를 새로고침한 뒤 다시 시도.</li>
+      <li><strong>키 오류</strong> — 사이드패널 API 키 카드의 “변경”으로 다시 저장.</li>
+    </ul>
+  </div>
+</body>
+</html>

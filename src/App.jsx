@@ -20,6 +20,7 @@ import LottoMachine from './pages/apps/LottoMachine'
 import ArtStudioPage from './pages/artStudio/ArtStudioPage'
 import EraserStudioPage from './pages/eraserStudio/EraserStudioPage'
 import VideoDlStudioPage from './pages/videoDlStudio/VideoDlStudioPage'
+import WritingStudioPage from './pages/writingStudio/WritingStudioPage'
 
 // Dashboard layout + pages
 import DashboardLayout from './pages/DashboardLayout'
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="/art-studio" element={<ArtStudioPage />} />
       <Route path="/eraser-studio" element={<EraserStudioPage />} />
       <Route path="/video-dl-studio" element={<VideoDlStudioPage />} />
+      <Route path="/writing-studio" element={<WritingStudioPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<LoginPage allowSignup={false} />} />
       <Route path="/dashboard/report/detail" element={<ProfitReportDetailPage />} />

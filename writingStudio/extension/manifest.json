@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Writing Studio — 네이버 블로그 글쓰기",
+  "description": "AI로 블로그 글을 생성하고 스마트에디터에 자동으로 채워줍니다. 발행은 직접 검수 후.",
+  "version": "0.2.0",
+  "version_name": "v20260704b",
+  "permissions": ["sidePanel", "storage", "activeTab", "tabs", "scripting", "debugger"],
+  "host_permissions": [
+    "https://*.naver.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "action": { "default_title": "Writing Studio" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1/*",
+        "http://127.0.0.1:*/*",
+        "https://appresso.vercel.app/*"
+      ],
+      "run_at": "document_start",
+      "js": ["content/appresso-detect.js"]
+    },
+    {
+      "matches": ["https://blog.naver.com/*"],
+      "all_frames": true,
+      "run_at": "document_idle",
+      "js": ["content/naver-fill.js"]
+    }
+  ],
+  "icons": {
+    "16": "ico/icon.png",
+    "48": "ico/icon.png",
+    "128": "ico/icon.png"
+  }
+}
