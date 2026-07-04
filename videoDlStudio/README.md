@@ -24,7 +24,8 @@ VideoDL Studio 웹앱(`/video-dl-studio`)과 연동되는 크롬 확장앱 소�
 1. 지원 사이트 검색 결과 페이지로 이동 → 각 카드에 체크박스가 자동 표시
 2. 다운로드할 카드 체크 → 하단 **미디어 추출** 버튼
 3. 사이드패널에서 실시간 진행 확인 → **전체 다운로드**
-4. 저장 경로: `~/Downloads/videodl-studio/YYYY-MM-DD/HH_MM_SS_플랫폼/`
+4. 저장 경로: `~/Downloads/videodl-studio/플랫폼_YYMMDD_HHMMSS.mp4`
+   (예: `douyin_260704_173422.mp4` — 하위 폴더 없이 바로 저장)
 
 ## 웹앱(VideoDL Studio)과 연동
 
