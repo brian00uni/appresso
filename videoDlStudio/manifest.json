@@ -3,7 +3,7 @@
   "name": "VideoDL Studio",
   "description": "더우인·틱톡·레드노트(샤오홍슈) 영상을 한 번에 추출·다운로드합니다.",
   "version": "0.1.0",
-  "version_name": "v20260704a",
+  "version_name": "v20260704b",
   "permissions": [
     "sidePanel",
     "activeTab",
