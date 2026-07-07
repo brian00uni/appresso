@@ -10,6 +10,7 @@ import './charts/ChartjsConfig'
 import HomePage from './pages/public/HomePage'
 import YouTubePage from './pages/public/YouTubePage'
 import TrendFinderPage from './pages/public/TrendFinderPage'
+import TrendHubPage from './pages/trendStudio/TrendHubPage'
 import AppsPage from './pages/public/AppsPage'
 import LoginPage from './pages/LoginPage'
 
@@ -58,6 +59,7 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/youtube" element={<YouTubePage />} />
       <Route path="/trend" element={<TrendFinderPage />} />
+      <Route path="/trend-hub" element={<TrendHubPage />} />
       <Route path="/apps" element={<AppsPage />} />
       <Route path="/apps/fortune-cookie" element={<FortuneCookie />} />
       <Route path="/apps/lotto" element={<LottoRecommend />} />
