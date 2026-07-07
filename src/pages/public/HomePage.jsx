@@ -43,6 +43,13 @@ const services = [
     desc: '플랫폼별 떡상 영상과 키워드 트렌드를 발굴해보세요',
     color: 'from-amber-500/20 to-orange-500/20 border-amber-500/30',
   },
+  {
+    to: '/trend-hub',
+    name: '트렌드 허브',
+    emoji: '🧭',
+    desc: '유튜브·틱톡·릴스·X·스레드 인기 콘텐츠와 AI 소식을 한곳에서',
+    color: 'from-sky-500/20 to-cyan-500/20 border-sky-500/30',
+  },
 ]
 
 // AI 서비스 (외부 링크)
