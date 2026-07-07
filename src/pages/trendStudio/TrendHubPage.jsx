@@ -327,6 +327,12 @@ export default function TrendHubPage() {
             state={reels} sorts={MEDIA_SORTS}
             onSort={(k) => setReels((s) => ({ ...s, sort: k }))}
             onAdd={handleAddAccount} onRemove={handleRemoveAccount}
+            fallback={{
+              emoji: '📸',
+              note: '⚠️ 서버 환경(배포)에서는 인스타그램이 접근을 제한해 릴스를 직접 불러오지 못할 수 있습니다. 아래에서 각 계정을 인스타그램에서 바로 열어볼 수 있어요.',
+              hrefFor: (name) => `https://www.instagram.com/${name}/`,
+              label: '인스타그램에서 열기 ↗',
+            }}
           />
         )}
 
@@ -496,7 +502,7 @@ function AccountBar({ source, placeholder, accounts, onAdd, onRemove }) {
 }
 
 // 릴스·틱톡 공용 (썸네일 그리드)
-function MediaTab({ note, source, placeholder, state, sorts, onSort, onAdd, onRemove }) {
+function MediaTab({ note, source, placeholder, state, sorts, onSort, onAdd, onRemove, fallback }) {
   const sorted = useMemo(() => {
     const f = state.sort
     return state.data.slice().sort((a, b) => (b[f] || 0) - (a[f] || 0))
@@ -512,8 +518,9 @@ function MediaTab({ note, source, placeholder, state, sorts, onSort, onAdd, onRe
         {!state.loading && sorted.length > 0 && <span className="text-xs text-gray-500">{label} 기준 · 총 {sorted.length}개</span>}
       </div>
       {state.loading ? <StatusBlock spinner text={state.status} />
-        : state.status ? <StatusBlock text={state.status} />
-          : (
+        : (sorted.length === 0 && fallback) ? <PlatformFallback {...fallback} accounts={state.accounts} />
+          : state.status ? <StatusBlock text={state.status} />
+            : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {sorted.map((m, i) => (
                 <a key={m.id || m.url} href={m.url} target="_blank" rel="noreferrer"
@@ -593,22 +600,32 @@ function Stat({ active, icon, n }) {
   )
 }
 
-function ThreadsFallback({ accounts }) {
+// 서버에서 데이터를 못 불러올 때(인스타 차단·스레드 차단 등) 계정 바로가기 카드로 폴백
+function PlatformFallback({ emoji, note, accounts, hrefFor, label }) {
   return (
     <>
-      <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-4">
-        ⚠️ 지금은 스레드가 로그인 없는 조회를 차단하고 있어 실시간 글을 가져오지 못했습니다. 아래에서 각 계정을 바로 열어볼 수 있습니다.
-      </p>
+      <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 mb-4">{note}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
         {accounts.map((name) => (
-          <a key={name} href={'https://www.threads.com/@' + name} target="_blank" rel="noreferrer"
+          <a key={name} href={hrefFor(name)} target="_blank" rel="noreferrer"
             className="block bg-gray-800 border border-gray-700/60 rounded-xl px-4 py-3.5 text-sm font-semibold text-gray-200 hover:border-violet-500">
-            🧵 @{name}
-            <small className="block text-gray-500 font-normal mt-1">스레드에서 열기 ↗</small>
+            {emoji} @{name}
+            <small className="block text-gray-500 font-normal mt-1">{label}</small>
           </a>
         ))}
       </div>
     </>
+  )
+}
+
+function ThreadsFallback({ accounts }) {
+  return (
+    <PlatformFallback
+      emoji="🧵" accounts={accounts}
+      note="⚠️ 지금은 스레드가 로그인 없는 조회를 차단하고 있어 실시간 글을 가져오지 못했습니다. 아래에서 각 계정을 바로 열어볼 수 있습니다."
+      hrefFor={(name) => 'https://www.threads.com/@' + name}
+      label="스레드에서 열기 ↗"
+    />
   )
 }
 
