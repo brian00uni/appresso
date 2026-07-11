@@ -13,6 +13,27 @@
 
 import { supabase } from './supabase'
 
+// LottoRecommend가 저장하는 localStorage 캐시 키 (공유)
+export const LS_CACHE = 'lotto_cache'
+
+// LottoRecommend가 localStorage에 저장한 추가 회차 배열을 읽는다. 없으면 [].
+export function readLocalCache() {
+  try {
+    const v = localStorage.getItem(LS_CACHE)
+    const arr = v != null ? JSON.parse(v) : []
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return []
+  }
+}
+
+// base 회차 배열에 extra(캐시/원격) 회차를 drw 기준으로 병합한다. 겹치면 extra가 우선.
+export function mergeDraws(base, extra) {
+  const map = new Map((base || []).map(d => [d.drw, d]))
+  ;(extra || []).forEach(d => { if (d && d.drw != null) map.set(d.drw, d) })
+  return Array.from(map.values()).sort((a, b) => a.drw - b.drw)
+}
+
 // 원격 공유 저장소의 전체 회차를 불러온다. 실패 시 null.
 export async function fetchSharedDraws() {
   try {

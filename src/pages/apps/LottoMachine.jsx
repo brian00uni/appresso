@@ -5,7 +5,8 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { trackVisit } from '../../lib/visits';
-import { getFrequency, getNumberStats, drawWeighted, ballColor, LATEST_DRW } from '../../lib/lottoData';
+import { BASE_KNOWN, getFrequency, getNumberStats, drawWeighted, ballColor } from '../../lib/lottoData';
+import { fetchSharedDraws, readLocalCache, mergeDraws } from '../../lib/lottoSync';
 
 // ── 물리 상수 ────────────────────────────────────────────────
 const MACHINE = 320;        // 유리통 지름(px)
@@ -19,8 +20,22 @@ const MINV    = 1.6;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 export default function LottoMachine() {
-  const freq  = useMemo(() => getFrequency(), []);
-  const stats = useMemo(() => getNumberStats(), []);
+  // LottoRecommend와 동일한 공유 데이터(로컬 캐시 + Supabase)를 사용해 회차/빈도를 연동한다.
+  const [data, setData] = useState(() => mergeDraws(BASE_KNOWN, readLocalCache()));
+  const freq  = useMemo(() => getFrequency(data), [data]);
+  const stats = useMemo(() => getNumberStats(data), [data]);
+  const latestDrw = useMemo(() => data.reduce((m, d) => Math.max(m, d.drw), 0), [data]);
+
+  // 마운트 시 원격 공유 저장소에서 최신 회차를 불러와 병합 (실패 시 로컬만 사용)
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const remote = await fetchSharedDraws();
+      if (!active || !remote || remote.length === 0) return;
+      setData(mergeDraws(mergeDraws(BASE_KNOWN, readLocalCache()), remote));
+    })();
+    return () => { active = false; };
+  }, []);
 
   const [results, setResults] = useState([]);   // 뽑힌 번호 (순서대로)
   const [drawing, setDrawing] = useState(false);
@@ -162,7 +177,7 @@ export default function LottoMachine() {
 
       <div style={sx.head}>
         <div style={sx.title}>🎱 로또 번호 뽑기</div>
-        <div style={sx.sub}>제 {LATEST_DRW}회까지 당첨빈도 기반 · 심플 버전</div>
+        <div style={sx.sub}>제 {latestDrw}회까지 당첨빈도 기반 · 심플 버전</div>
       </div>
 
       {/* ── 유리통 머신 ── */}
