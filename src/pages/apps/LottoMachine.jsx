@@ -25,6 +25,10 @@ export default function LottoMachine() {
   const freq  = useMemo(() => getFrequency(data), [data]);
   const stats = useMemo(() => getNumberStats(data), [data]);
   const latestDrw = useMemo(() => data.reduce((m, d) => Math.max(m, d.drw), 0), [data]);
+  const latestDraw = useMemo(
+    () => data.find(d => d.drw === latestDrw) || data[data.length - 1] || null,
+    [data, latestDrw]
+  );
 
   // 마운트 시 원격 공유 저장소에서 최신 회차를 불러와 병합 (실패 시 로컬만 사용)
   useEffect(() => {
@@ -178,6 +182,23 @@ export default function LottoMachine() {
       <div style={sx.head}>
         <div style={sx.title}>🎱 로또 번호 뽑기</div>
         <div style={sx.sub}>제 {latestDrw}회까지 당첨빈도 기반 · 심플 버전</div>
+
+        {/* 최근 회차 당첨번호 */}
+        {latestDraw && (
+          <div style={sx.recentWrap}>
+            <span style={sx.recentLabel}>
+              🏆 제{latestDraw.drw}회 당첨번호
+              {latestDraw.date && <span style={sx.recentDate}> · {latestDraw.date}</span>}
+            </span>
+            <div style={sx.recentBalls}>
+              {latestDraw.nums.map(n => (
+                <div key={n} style={{ ...sx.recentBall, background: ballGradient(n) }}>{n}</div>
+              ))}
+              <span style={sx.recentPlus}>+</span>
+              <div style={{ ...sx.recentBall, background: ballGradient(latestDraw.bonus) }}>{latestDraw.bonus}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── 유리통 머신 ── */}
@@ -297,6 +318,17 @@ const sx = {
   head: { textAlign: 'center', marginBottom: 18 },
   title: { fontSize: 30, fontWeight: 800, letterSpacing: '-.5px' },
   sub: { fontSize: 15, color: '#94a3b8', marginTop: 6 },
+
+  recentWrap: { marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 },
+  recentLabel: { fontSize: 12, fontWeight: 700, color: '#a5b4fc' },
+  recentDate: { color: '#64748b', fontWeight: 500 },
+  recentBalls: { display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', justifyContent: 'center' },
+  recentBall: {
+    width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontWeight: 800, fontSize: 12, color: '#3a2c00', textShadow: '0 1px 1px rgba(255,255,255,.4)',
+    boxShadow: '0 2px 5px rgba(0,0,0,.35)',
+  },
+  recentPlus: { color: '#94a3b8', fontSize: 13, margin: '0 3px' },
 
   stage: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
   machine: {
