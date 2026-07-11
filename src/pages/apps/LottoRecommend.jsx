@@ -1513,6 +1513,12 @@ export default function LottoRecommend() {
 
   const statusBadge = { loading:<span style={{color:'#fbbf24'}}> · 업데이트 중…</span>, success:<span style={{color:'#34d399'}}> · ✓ 최신</span>, error:<span style={{color:'#f87171'}}> · ⚠ 오류</span> }[status] ?? null;
 
+  // 최신 회차 (상단 고정 표시용) — 실제 당첨번호가 있는 마지막 회차
+  const latestDraw = useMemo(
+    () => allData.find(d => d.drw === latestDrw) || allData[allData.length - 1] || null,
+    [allData, latestDrw]
+  );
+
   return (
     <div style={{fontFamily:"'Noto Sans KR','Apple SD Gothic Neo',Arial,sans-serif",background:'#0f0f1a',width:'100vw',minHeight:'100vh',overflowY:'auto',color:'#e2e8f0',paddingBottom:60,boxSizing:'border-box'}}>
       <div style={{background:'linear-gradient(135deg,#1e1b4b,#312e81)',padding:'18px 16px 14px',textAlign:'center'}}>
@@ -1526,6 +1532,29 @@ export default function LottoRecommend() {
           ))}
         </div>
       </div>
+
+      {/* 최신 회차 당첨번호 — 탭 아래 상단 고정(sticky) */}
+      {latestDraw && (
+        <div style={{
+          position:'sticky', top:0, zIndex:20,
+          background:'rgba(15,15,26,0.96)', backdropFilter:'blur(6px)',
+          borderBottom:'1px solid #1e293b', boxShadow:'0 2px 10px rgba(0,0,0,.35)',
+          padding:'8px 12px',
+        }}>
+          <div style={{maxWidth:500, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap'}}>
+            <div style={{display:'flex', flexDirection:'column', lineHeight:1.15}}>
+              <span style={{fontSize:12, fontWeight:800, color:'#a5b4fc', whiteSpace:'nowrap'}}>🏆 최신 제{latestDraw.drw}회</span>
+              {latestDraw.date && <span style={{fontSize:9, color:'#475569', whiteSpace:'nowrap'}}>{latestDraw.date}</span>}
+            </div>
+            <div style={{display:'flex', alignItems:'center', gap:1}}>
+              {latestDraw.nums.map(n=><Ball key={n} n={n} size={26}/>)}
+              <span style={{color:'#94a3b8', fontSize:12, margin:'0 3px'}}>+</span>
+              <Ball n={latestDraw.bonus} size={26} bonus/>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{maxWidth:500,margin:'0 auto',padding:'0 12px'}}>
         {tab==='update'    && <UpdateTab allData={allData} latestDrw={latestDrw} status={status} log={log} lastFetch={lastFetch} onUpdate={()=>doFetch(latestDrw)} onManualAdd={handleManualAdd} onClearCache={handleClearCache}/>}
         {tab==='freq'      && <FreqTab    allData={allData}/>}
