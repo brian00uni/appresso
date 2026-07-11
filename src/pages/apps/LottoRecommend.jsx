@@ -20,6 +20,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { trackVisit } from '../../lib/visits';
+import { fetchSharedDraws, pushSharedDraws } from '../../lib/lottoSync';
 
 // ══════════════════════════════════════════════════════════════
 // § 상수
@@ -1388,6 +1389,31 @@ export default function LottoRecommend() {
     trackVisit('lotto');
   }, []);
 
+  // 원격 공유 저장소(Supabase)에서 최신 당첨번호를 불러와 로컬과 병합 (마운트 1회)
+  //   · 한 번 업데이트해두면 다른 브라우저·기기·시크릿모드에서 열어도 그대로 유지됨
+  //   · 원격 조회 실패 시 기존 로컬 데이터를 그대로 사용 (동작 영향 없음)
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const remote = await fetchSharedDraws();
+      if (!active || !remote || remote.length === 0) return;
+      const localCache = ls.get(LS_CACHE, []);
+      const map = new Map(localCache.map(d => [d.drw, d]));
+      remote.forEach(d => map.set(d.drw, d)); // 원격이 정본
+      const mergedCache = Array.from(map.values()).sort((a, b) => a.drw - b.drw);
+      const newLatest = Math.max(...mergedCache.map(d => d.drw), BASE_LATEST_DRW);
+      ls.set(LS_CACHE, mergedCache); ls.set(LS_LATEST, newLatest);
+      if (!active) return;
+      setAllData(mergeWithCache(mergedCache));
+      setLatestDrw(newLatest);
+      // 로컬에만 있던 회차는 원격에 없으므로 올려서 다른 기기와 공유
+      const remoteSet = new Set(remote.map(d => d.drw));
+      const localOnly = mergedCache.filter(d => !remoteSet.has(d.drw));
+      if (localOnly.length) pushSharedDraws(localOnly);
+    })();
+    return () => { active = false; };
+  }, []);
+
   // API fetch
   const doFetch = useCallback(async (fromDrw, silent = false) => {
     if (!silent) setStatus('loading');
@@ -1429,6 +1455,7 @@ export default function LottoRecommend() {
     setAllData(merged); setLatestDrw(newLatest); setLastFetch(Date.now());
 
     if (fetched > 0) {
+      pushSharedDraws(newCache); // 원격 공유 저장소에도 반영 (best-effort)
       setLog(prev => [...newLog, ...prev].slice(0, 60));
       setStatus('success');
     } else {
@@ -1450,6 +1477,7 @@ export default function LottoRecommend() {
     ls.set(LS_CACHE, newCache); ls.set(LS_LATEST, newLatest); ls.set(LS_LAST_FETCH, Date.now());
     const merged = mergeWithCache(newCache);
     setAllData(merged); setLatestDrw(newLatest); setLastFetch(Date.now());
+    pushSharedDraws([draw]); // 원격 공유 저장소에도 반영 (best-effort)
     setLog(prev => [`✏️ ${draw.drw}회 직접 등록: ${draw.nums.join('·')} +${draw.bonus}`, ...prev].slice(0, 60));
     setStatus('success');
   }, []);
