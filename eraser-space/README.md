@@ -25,10 +25,10 @@ HuggingFace **Docker Space(무료 CPU)** 에서 동작합니다.
 
 1. huggingface.co → **New Space** → SDK **Docker** 선택
 2. 이 폴더(`eraser-space/`)의 `app.py`, `requirements.txt`, `Dockerfile`, `README.md` 업로드(또는 git push)
-3. 빌드 완료 후 Space 주소 확인 → 예: `https://<user>-eraser-studio.hf.space`
+3. 빌드 완료 후 Space 주소 확인 → 예: `https://<user>-studioproj.hf.space`
 4. Vercel 프로젝트 환경변수에 추가:
    ```
-   VITE_ERASER_ENDPOINT=https://<user>-eraser-studio.hf.space
+   VITE_ERASER_ENDPOINT=https://<user>-studioproj.hf.space
    ```
 5. 재배포하면 프론트에서 실제 자막 제거가 동작합니다.
 

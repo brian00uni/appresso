@@ -1,7 +1,7 @@
 // EraserStudioPage.jsx — 영상 자막 지우개 (MVP)
 // 흐름: 영상 업로드 → 영상 위에서 자막 영역 박스 드래그 → 처리 요청 → 결과·다운로드
 // 처리 엔진: HuggingFace Space(FastAPI + OpenCV) — VITE_ERASER_ENDPOINT 로 지정
-//   예) VITE_ERASER_ENDPOINT=https://<user>-eraser-studio.hf.space
+//   예) VITE_ERASER_ENDPOINT=https://<user>-studioproj.hf.space
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
