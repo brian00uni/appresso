@@ -89,6 +89,13 @@ const aiServices = [
     desc: '네이버 블로그 글을 AI로 쓰고 자동으로 채워보세요',
     color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
   },
+  {
+    href: '/smart-studio',
+    name: 'Smart Studio',
+    emoji: '🧮',
+    desc: '스마트스토어 상품 마진을 계산하고 목록으로 관리해보세요',
+    color: 'from-lime-500/20 to-green-500/20 border-lime-500/30',
+  },
 ]
 
 // 하단 Funny App (팝업 링크)
