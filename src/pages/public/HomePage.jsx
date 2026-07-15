@@ -89,13 +89,25 @@ const aiServices = [
     desc: '네이버 블로그 글을 AI로 쓰고 자동으로 채워보세요',
     color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
   },
-  {
-    href: '/smart-studio',
-    name: 'Smart Studio',
-    emoji: '🧮',
-    desc: '스마트스토어 상품 마진을 계산하고 목록으로 관리해보세요',
-    color: 'from-lime-500/20 to-green-500/20 border-lime-500/30',
-  },
+]
+
+// 스마트스토어 업무 — 내부 앱 (전체 카드)
+const smartApp = {
+  href: '/smart-studio',
+  name: 'Smart Studio',
+  emoji: '🧮',
+  desc: '스마트스토어 상품 마진을 계산하고 목록으로 관리해보세요',
+  color: 'from-lime-500/20 to-green-500/20 border-lime-500/30',
+}
+
+// 스마트스토어 업무 — 외부 사이트 (타이틀+링크만, 컴팩트)
+const bizLinks = [
+  { href: 'https://sell.smartstore.naver.com/', name: '스마트스토어센터', emoji: '🏪' },
+  { href: 'https://searchad.naver.com/', name: '네이버 광고', emoji: '📣' },
+  { href: 'https://datalab.naver.com/', name: '네이버 데이터랩', emoji: '📈' },
+  { href: 'https://itemscout.io/', name: '아이템스카우트', emoji: '🔎' },
+  { href: 'https://pandarank.net/', name: '판다랭크', emoji: '🐼' },
+  { href: 'https://domeggook.com/', name: '도매매', emoji: '📦' },
 ]
 
 // 하단 Funny App (팝업 링크)
@@ -196,6 +208,52 @@ export default function HomePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9M17 7v8" />
                   </svg>
                 </div>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* 스마트스토어 업무 */}
+        <section className="mb-12">
+          <h2 className="text-lg font-bold text-gray-200 mb-4">스마트스토어 업무</h2>
+
+          {/* 내부 앱 (전체 카드) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <Link
+              to={smartApp.href}
+              className={`bg-gradient-to-br ${smartApp.color} bg-gray-800 border rounded-2xl p-6 hover:scale-[1.02] transition-transform group`}
+            >
+              <div className="text-5xl mb-4">{smartApp.emoji}</div>
+              <h3 className="text-xl font-bold text-gray-100 group-hover:text-violet-400 transition-colors">
+                {smartApp.name}
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">{smartApp.desc}</p>
+              <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-medium">
+                <span>바로가기</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
+          </div>
+
+          {/* 외부 링크 (타이틀+링크만, 컴팩트) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {bizLinks.map((s) => (
+              <a
+                key={s.href}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-gray-800/60 border border-gray-700/60 rounded-xl px-4 py-3 hover:bg-gray-800 hover:border-violet-500/40 transition-colors group"
+              >
+                <span className="text-2xl shrink-0">{s.emoji}</span>
+                <span className="font-semibold text-sm text-gray-100 group-hover:text-violet-400 transition-colors truncate">
+                  {s.name}
+                </span>
+                <svg className="w-3 h-3 ml-auto shrink-0 text-gray-500 group-hover:text-violet-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H9M17 7v8" />
+                </svg>
               </a>
             ))}
           </div>
