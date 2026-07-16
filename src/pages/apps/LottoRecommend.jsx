@@ -1396,20 +1396,26 @@ export default function LottoRecommend() {
     let active = true;
     (async () => {
       const remote = await fetchSharedDraws();
-      if (!active || !remote || remote.length === 0) return;
+      if (!active) return;
+      // 원격 조회 성공(빈 배열 포함) 시 로컬과 병합해 정본으로 반영.
+      // 조회 자체가 실패(null)했을 땐 원격 상태를 알 수 없으므로 로컬을 그대로 유지한다.
       const localCache = ls.get(LS_CACHE, []);
       const map = new Map(localCache.map(d => [d.drw, d]));
-      remote.forEach(d => map.set(d.drw, d)); // 원격이 정본
+      (remote || []).forEach(d => map.set(d.drw, d)); // 원격이 정본
       const mergedCache = Array.from(map.values()).sort((a, b) => a.drw - b.drw);
       const newLatest = Math.max(...mergedCache.map(d => d.drw), BASE_LATEST_DRW);
       ls.set(LS_CACHE, mergedCache); ls.set(LS_LATEST, newLatest);
       if (!active) return;
       setAllData(mergeWithCache(mergedCache));
       setLatestDrw(newLatest);
-      // 로컬에만 있던 회차는 원격에 없으므로 올려서 다른 기기와 공유
-      const remoteSet = new Set(remote.map(d => d.drw));
-      const localOnly = mergedCache.filter(d => !remoteSet.has(d.drw));
-      if (localOnly.length) pushSharedDraws(localOnly);
+      // 로컬에만 있고 원격엔 없는 회차는 공유 저장소로 올려 다른 기기와 동기화한다.
+      // ★ 원격이 비어있을(0건) 때도 반드시 실행돼야 최초 시딩이 이뤄진다.
+      //   (이전에는 remote.length===0 이면 조기 return 해서 시딩이 영영 안 됐음)
+      if (remote) {
+        const remoteSet = new Set(remote.map(d => d.drw));
+        const localOnly = mergedCache.filter(d => !remoteSet.has(d.drw));
+        if (localOnly.length) pushSharedDraws(localOnly);
+      }
     })();
     return () => { active = false; };
   }, []);

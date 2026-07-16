@@ -73,7 +73,15 @@ export default function LottoMachine() {
     }
     ballsRef.current = balls;
 
-    const step = () => {
+    // 모바일 발열·버벅임 완화: 물리 갱신을 ~45fps로 제한한다.
+    // (120Hz ProMotion 기기에선 rAF가 초당 120회 호출돼 45개 볼 연산이 2배로 무거워짐)
+    const FRAME_MS = 1000 / 45;
+    let prevT = 0;
+    const step = (now) => {
+      rafRef.current = requestAnimationFrame(step);
+      if (now - prevT < FRAME_MS) return;
+      prevT = now;
+
       const drawn = drawnRef.current;
       for (const b of ballsRef.current) {
         if (!b.el) continue;
@@ -108,7 +116,6 @@ export default function LottoMachine() {
 
         b.el.style.transform = `translate(-50%,-50%) translate(${b.x}px,${b.y}px)`;
       }
-      rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
