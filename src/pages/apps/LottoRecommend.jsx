@@ -2,10 +2,13 @@
 // 의존성: React 내장만 사용 (외부 라이브러리 없음)
 //
 // ── API 호출 순서 ──────────────────────────────────────────
-//   1순위: Vite dev 프록시 (/api-lotto)  ← vite.config.js 설정 필요 (아래 주석 참고)
-//   2순위: allorigins.win 공개 CORS 프록시
-//   3순위: corsproxy.io 공개 CORS 프록시
+//   1순위: /api/lotto 서버리스 프록시 (Vercel) — kokomel/동행복권을 서버에서 대신 조회
+//   2순위: Vite dev 프록시 (/api-lotto)  ← vite.config.js 설정 필요 (아래 주석 참고)
+//   3순위: allorigins.win 공개 CORS 프록시 (현재 불안정)
+//   4순위: corsproxy.io 공개 CORS 프록시 (현재 유료 전환)
 //   모두 실패 시 → "직접 입력" 폼으로 수동 등록 가능
+//   ※ 동행복권 직접 호출은 해외/데이터센터 IP에서 홈으로 302 리다이렉트되어 브라우저에선
+//     사실상 불가. 그래서 서버리스(/api/lotto)를 최우선으로 둔다. → api/lotto.js
 //
 // ── vite.config.js 설정 (사내 방화벽 환경 권장) ───────────
 //   server: {
@@ -167,6 +170,9 @@ const ls = {
 // § 3. API — 3단계 폴백 전략
 //   Vite 프록시(/api-lotto) → allorigins → corsproxy
 // ══════════════════════════════════════════════════════════════
+const SERVERLESS_PATH = (drw) =>
+  `/api/lotto?drwNo=${drw}`; // Vercel 서버리스 프록시 (api/lotto.js)
+
 const DH_PATH = (drw) =>
   `/api-lotto?method=getLottoNumber&drwNo=${drw}`; // Vite 프록시 경로
 
@@ -210,7 +216,15 @@ function parseDrawJson(j) {
 }
 
 async function fetchOneDraw(drwNo) {
-  // 1순위: Vite dev 프록시
+  // 1순위: Vercel 서버리스 프록시 (프로덕션 기본 경로)
+  try {
+    const j = await tryFetch(SERVERLESS_PATH(drwNo), 12000);
+    const d = parseDrawJson(j);
+    if (d) return d;
+    if (j?.returnValue === 'fail') return null; // 아직 미추첨
+  } catch { /* vite dev 등 서버리스 없는 환경 → 폴백 */ }
+
+  // 2순위: Vite dev 프록시
   try {
     const j = await tryFetch(DH_PATH(drwNo), 5000);
     const d = parseDrawJson(j);
@@ -218,7 +232,7 @@ async function fetchOneDraw(drwNo) {
     if (j?.returnValue === 'fail') return null; // 아직 미추첨
   } catch { /* 프록시 미설정 시 404 → 폴백 */ }
 
-  // 2·3순위: 공개 CORS 프록시
+  // 3·4순위: 공개 CORS 프록시
   for (const proxy of PUBLIC_PROXIES) {
     try {
       const j = await tryFetch(proxy(DH_DIRECT(drwNo)), 10000);
