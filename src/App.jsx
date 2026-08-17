@@ -23,6 +23,7 @@ import EraserStudioPage from './pages/eraserStudio/EraserStudioPage'
 import VideoDlStudioPage from './pages/videoDlStudio/VideoDlStudioPage'
 import WritingStudioPage from './pages/writingStudio/WritingStudioPage'
 import SmartStudioPage from './pages/smartStudio/SmartStudioPage'
+import CostStudioPage from './pages/costStudio/CostStudioPage'
 
 // Dashboard layout + pages
 import DashboardLayout from './pages/DashboardLayout'
@@ -70,6 +71,7 @@ function AppRoutes() {
       <Route path="/video-dl-studio" element={<VideoDlStudioPage />} />
       <Route path="/writing-studio" element={<WritingStudioPage />} />
       <Route path="/smart-studio" element={<SmartStudioPage />} />
+      <Route path="/cost-studio" element={<CostStudioPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/admin/login" element={<LoginPage allowSignup={false} />} />
       <Route path="/dashboard/report/detail" element={<ProfitReportDetailPage />} />

@@ -92,13 +92,22 @@ const aiServices = [
 ]
 
 // 스마트스토어 업무 — 내부 앱 (전체 카드)
-const smartApp = {
-  href: '/smart-studio',
-  name: 'Smart Studio',
-  emoji: '🧮',
-  desc: '스마트스토어 상품 마진을 계산하고 목록으로 관리해보세요',
-  color: 'from-lime-500/20 to-green-500/20 border-lime-500/30',
-}
+const smartApps = [
+  {
+    href: '/smart-studio',
+    name: 'Smart Studio',
+    emoji: '🧮',
+    desc: '스마트스토어 상품 마진을 계산하고 목록으로 관리해보세요',
+    color: 'from-lime-500/20 to-green-500/20 border-lime-500/30',
+  },
+  {
+    href: '/cost-studio',
+    name: '사입 원가계산기',
+    emoji: '📦',
+    desc: '1688 다품목 사입 원가를 배송·통관·포장까지 합산해 계산해보세요',
+    color: 'from-orange-500/20 to-amber-500/20 border-orange-500/30',
+  },
+]
 
 // 스마트스토어 업무 — 외부 사이트 (타이틀+링크만, 컴팩트)
 const bizLinks = [
@@ -219,22 +228,25 @@ export default function HomePage() {
 
           {/* 내부 앱 (전체 카드) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <Link
-              to={smartApp.href}
-              className={`bg-gradient-to-br ${smartApp.color} bg-gray-800 border rounded-2xl p-6 hover:scale-[1.02] transition-transform group`}
-            >
-              <div className="text-5xl mb-4">{smartApp.emoji}</div>
-              <h3 className="text-xl font-bold text-gray-100 group-hover:text-violet-400 transition-colors">
-                {smartApp.name}
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">{smartApp.desc}</p>
-              <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-medium">
-                <span>바로가기</span>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
+            {smartApps.map((app) => (
+              <Link
+                key={app.href}
+                to={app.href}
+                className={`bg-gradient-to-br ${app.color} bg-gray-800 border rounded-2xl p-6 hover:scale-[1.02] transition-transform group`}
+              >
+                <div className="text-5xl mb-4">{app.emoji}</div>
+                <h3 className="text-xl font-bold text-gray-100 group-hover:text-violet-400 transition-colors">
+                  {app.name}
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">{app.desc}</p>
+                <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-medium">
+                  <span>바로가기</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            ))}
           </div>
 
           {/* 외부 링크 (타이틀+링크만, 컴팩트) */}
