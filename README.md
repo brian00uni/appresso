@@ -164,3 +164,12 @@ authStore (Zustand)
   ├─ loading   초기 세션 로드 완료 여부
   └─ signOut() 로그아웃 + 상태 초기화
 ```
+
+### 로또 데이터 갱신
+
+공식 당첨번호 스냅샷은 `src/data/lotto-draws.json`에 있습니다.
+`npm run lotto:update`로 최신 회차를 추가하고 `npm run test:lotto`로 검증합니다.
+두 로또 화면은 같은 스냅샷과 `/api/lotto`를 사용합니다. Vite 개발/미리보기에서도 API가 동작합니다.
+페이지가 열려 있으면 결과 확인 시각(KST 토요일 21:35) 이후 갱신하며, 실패하면 5분 간격으로 재시도합니다.
+`.github/workflows/lotto-update.yml`은 브라우저와 독립적으로 파일을 갱신합니다. 기본 브랜치 반영 및 Actions 쓰기 권한이 필요하며, 운영 배포는 저장소의 배포 연동에 따릅니다.
+자세한 원인·검증 범위는 [진단 기록](docs/lotto-update-review.md)을 참고하세요.

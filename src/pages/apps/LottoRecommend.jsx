@@ -1,291 +1,12 @@
-// LottoRecommend.jsx — 로또 6/45 완전 분석 (자동·수동·직접입력 업데이트 포함)
-// 의존성: React 내장만 사용 (외부 라이브러리 없음)
-//
-// ── API 호출 순서 ──────────────────────────────────────────
-//   1순위: /api/lotto 서버리스 프록시 (Vercel) — kokomel/동행복권을 서버에서 대신 조회
-//   2순위: Vite dev 프록시 (/api-lotto)  ← vite.config.js 설정 필요 (아래 주석 참고)
-//   3순위: allorigins.win 공개 CORS 프록시 (현재 불안정)
-//   4순위: corsproxy.io 공개 CORS 프록시 (현재 유료 전환)
-//   모두 실패 시 → "직접 입력" 폼으로 수동 등록 가능
-//   ※ 동행복권 직접 호출은 해외/데이터센터 IP에서 홈으로 302 리다이렉트되어 브라우저에선
-//     사실상 불가. 그래서 서버리스(/api/lotto)를 최우선으로 둔다. → api/lotto.js
-//
-// ── vite.config.js 설정 (사내 방화벽 환경 권장) ───────────
-//   server: {
-//     proxy: {
-//       '/api-lotto': {
-//         target: 'https://www.dhlottery.co.kr',
-//         changeOrigin: true,
-//         rewrite: (p) => p.replace('/api-lotto', '/common.do'),
-//       },
-//     },
-//   },
-
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+// 로또 분석: 공식 스냅샷과 공통 자동 갱신기를 사용합니다.
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { trackVisit } from '../../lib/visits';
-import { fetchSharedDraws, pushSharedDraws } from '../../lib/lottoSync';
+import { LATEST_DRW as BASE_LATEST_DRW } from '../../lib/lottoData';
+import { msUntilNextDrawUpdate, getExpectedLatestDraw, drawDate } from '../../lib/lottoCore';
+import { currentDraws, syncLatestDraws, watchLotto, lastSuccess, saveDraws, clearDrawCache } from '../../lib/lottoUpdater';
 
 // ══════════════════════════════════════════════════════════════
 // § 상수
-// ══════════════════════════════════════════════════════════════
-const LS_CACHE      = 'lotto_cache';
-const LS_LATEST     = 'lotto_latest_drw';
-const LS_LAST_FETCH = 'lotto_last_fetch';
-
-// ══════════════════════════════════════════════════════════════
-// § 1. 내장 당첨번호 베이스 (1104~1218회 실제 데이터)
-//      ※ 1215~1218회 실제 번호로 정정 완료
-// ══════════════════════════════════════════════════════════════
-const BASE_KNOWN = [
-  { drw:1104, nums:[3,7,16,24,35,39],   bonus:11, date:'2024-02-10' },
-  { drw:1105, nums:[4,13,21,28,36,42],  bonus:9,  date:'2024-02-17' },
-  { drw:1106, nums:[2,11,18,25,33,44],  bonus:6,  date:'2024-02-24' },
-  { drw:1107, nums:[5,14,22,29,37,43],  bonus:18, date:'2024-03-02' },
-  { drw:1108, nums:[1,10,17,24,32,41],  bonus:7,  date:'2024-03-09' },
-  { drw:1109, nums:[6,15,23,30,38,45],  bonus:12, date:'2024-03-16' },
-  { drw:1110, nums:[3,12,19,26,34,40],  bonus:8,  date:'2024-03-23' },
-  { drw:1111, nums:[7,16,24,31,39,44],  bonus:20, date:'2024-03-30' },
-  { drw:1112, nums:[2,9,18,27,35,42],   bonus:14, date:'2024-04-06' },
-  { drw:1113, nums:[4,11,20,28,36,43],  bonus:17, date:'2024-04-13' },
-  { drw:1114, nums:[1,8,15,23,31,40],   bonus:5,  date:'2024-04-20' },
-  { drw:1115, nums:[6,13,22,29,37,44],  bonus:19, date:'2024-04-27' },
-  { drw:1116, nums:[3,10,17,25,33,41],  bonus:7,  date:'2024-05-04' },
-  { drw:1117, nums:[5,12,20,27,35,42],  bonus:16, date:'2024-05-11' },
-  { drw:1118, nums:[2,9,16,24,32,39],   bonus:11, date:'2024-05-18' },
-  { drw:1119, nums:[4,11,18,26,34,43],  bonus:8,  date:'2024-05-25' },
-  { drw:1120, nums:[7,14,21,28,36,45],  bonus:3,  date:'2024-06-01' },
-  { drw:1121, nums:[1,8,15,22,30,38],   bonus:13, date:'2024-06-08' },
-  { drw:1122, nums:[6,13,19,27,35,44],  bonus:22, date:'2024-06-15' },
-  { drw:1123, nums:[3,10,17,24,32,41],  bonus:9,  date:'2024-06-22' },
-  { drw:1124, nums:[5,12,20,29,37,43],  bonus:18, date:'2024-06-29' },
-  { drw:1125, nums:[2,9,16,23,31,40],   bonus:6,  date:'2024-07-06' },
-  { drw:1126, nums:[4,11,18,25,33,42],  bonus:14, date:'2024-07-13' },
-  { drw:1127, nums:[7,15,22,30,38,45],  bonus:20, date:'2024-07-20' },
-  { drw:1128, nums:[1,8,14,21,29,37],   bonus:4,  date:'2024-07-27' },
-  { drw:1129, nums:[6,13,20,27,34,41],  bonus:10, date:'2024-08-03' },
-  { drw:1130, nums:[3,10,17,25,33,44],  bonus:16, date:'2024-08-10' },
-  { drw:1131, nums:[5,12,19,26,35,42],  bonus:8,  date:'2024-08-17' },
-  { drw:1132, nums:[2,9,16,23,32,39],   bonus:13, date:'2024-08-24' },
-  { drw:1133, nums:[4,11,18,28,36,43],  bonus:21, date:'2024-08-31' },
-  { drw:1134, nums:[7,14,21,29,37,45],  bonus:3,  date:'2024-09-07' },
-  { drw:1135, nums:[1,8,15,22,31,40],   bonus:17, date:'2024-09-14' },
-  { drw:1136, nums:[6,13,20,27,35,41],  bonus:9,  date:'2024-09-21' },
-  { drw:1137, nums:[3,10,18,25,33,44],  bonus:7,  date:'2024-09-28' },
-  { drw:1138, nums:[5,12,19,26,34,42],  bonus:15, date:'2024-10-05' },
-  { drw:1139, nums:[2,9,16,24,32,39],   bonus:11, date:'2024-10-12' },
-  { drw:1140, nums:[4,11,18,27,35,43],  bonus:20, date:'2024-10-19' },
-  { drw:1141, nums:[7,14,21,28,36,45],  bonus:4,  date:'2024-10-26' },
-  { drw:1142, nums:[1,8,15,22,30,38],   bonus:12, date:'2024-11-02' },
-  { drw:1143, nums:[6,13,20,29,37,44],  bonus:23, date:'2024-11-09' },
-  { drw:1144, nums:[3,10,17,24,33,41],  bonus:8,  date:'2024-11-16' },
-  { drw:1145, nums:[5,12,19,25,34,42],  bonus:16, date:'2024-11-23' },
-  { drw:1146, nums:[2,9,16,23,31,40],   bonus:6,  date:'2024-11-30' },
-  { drw:1147, nums:[4,11,18,26,35,43],  bonus:14, date:'2024-12-07' },
-  { drw:1148, nums:[7,14,21,28,36,44],  bonus:2,  date:'2024-12-14' },
-  { drw:1149, nums:[1,8,15,22,30,37],   bonus:10, date:'2024-12-21' },
-  { drw:1150, nums:[6,13,20,27,34,41],  bonus:19, date:'2024-12-28' },
-  { drw:1151, nums:[3,10,17,24,32,39],  bonus:7,  date:'2025-01-04' },
-  { drw:1152, nums:[30,31,32,35,36,37], bonus:28, date:'2025-01-11' },
-  { drw:1153, nums:[5,12,19,26,34,43],  bonus:18, date:'2025-01-18' },
-  { drw:1154, nums:[2,9,16,23,31,40],   bonus:5,  date:'2025-01-25' },
-  { drw:1155, nums:[4,11,18,27,35,44],  bonus:22, date:'2025-02-01' },
-  { drw:1156, nums:[7,14,21,28,36,45],  bonus:3,  date:'2025-02-08' },
-  { drw:1157, nums:[1,8,15,22,30,38],   bonus:11, date:'2025-02-15' },
-  { drw:1158, nums:[6,13,20,29,37,41],  bonus:24, date:'2025-02-22' },
-  { drw:1159, nums:[3,10,17,25,33,42],  bonus:8,  date:'2025-03-01' },
-  { drw:1160, nums:[5,12,19,26,34,43],  bonus:16, date:'2025-03-08' },
-  { drw:1161, nums:[2,9,16,23,32,39],   bonus:13, date:'2025-03-15' },
-  { drw:1162, nums:[20,21,22,25,28,29], bonus:17, date:'2025-03-22' },
-  { drw:1163, nums:[4,11,18,27,35,44],  bonus:9,  date:'2025-03-29' },
-  { drw:1164, nums:[7,14,21,28,36,45],  bonus:4,  date:'2025-04-05' },
-  { drw:1165, nums:[1,8,15,22,30,37],   bonus:12, date:'2025-04-12' },
-  { drw:1166, nums:[6,13,20,27,34,41],  bonus:19, date:'2025-04-19' },
-  { drw:1167, nums:[3,10,17,24,33,42],  bonus:7,  date:'2025-04-26' },
-  { drw:1168, nums:[5,12,19,26,35,44],  bonus:21, date:'2025-05-03' },
-  { drw:1169, nums:[2,9,16,23,31,40],   bonus:6,  date:'2025-05-10' },
-  { drw:1170, nums:[4,11,18,25,33,43],  bonus:15, date:'2025-05-17' },
-  { drw:1171, nums:[7,14,21,28,36,45],  bonus:3,  date:'2025-05-24' },
-  { drw:1172, nums:[1,8,15,22,30,38],   bonus:11, date:'2025-05-31' },
-  { drw:1173, nums:[6,13,19,27,34,41],  bonus:20, date:'2025-06-07' },
-  { drw:1174, nums:[3,10,17,25,32,42],  bonus:8,  date:'2025-06-14' },
-  { drw:1175, nums:[5,12,20,27,35,43],  bonus:16, date:'2025-06-21' },
-  { drw:1176, nums:[2,9,16,23,31,39],   bonus:5,  date:'2025-06-28' },
-  { drw:1177, nums:[4,11,18,26,34,44],  bonus:13, date:'2025-07-05' },
-  { drw:1178, nums:[7,14,21,28,37,45],  bonus:2,  date:'2025-07-12' },
-  { drw:1179, nums:[1,8,15,22,30,40],   bonus:17, date:'2025-07-19' },
-  { drw:1180, nums:[6,13,20,27,35,41],  bonus:23, date:'2025-07-26' },
-  { drw:1181, nums:[3,10,17,24,32,42],  bonus:9,  date:'2025-08-02' },
-  { drw:1182, nums:[5,12,19,26,34,43],  bonus:15, date:'2025-08-09' },
-  { drw:1183, nums:[2,9,16,23,31,40],   bonus:7,  date:'2025-08-16' },
-  { drw:1184, nums:[4,11,18,25,33,44],  bonus:21, date:'2025-08-23' },
-  { drw:1185, nums:[7,14,21,29,36,45],  bonus:4,  date:'2025-08-30' },
-  { drw:1186, nums:[1,8,15,22,30,37],   bonus:10, date:'2025-09-06' },
-  { drw:1187, nums:[6,13,20,27,34,41],  bonus:19, date:'2025-09-13' },
-  { drw:1188, nums:[3,10,17,24,33,42],  bonus:8,  date:'2025-09-20' },
-  { drw:1189, nums:[5,12,19,26,35,43],  bonus:16, date:'2025-09-27' },
-  { drw:1190, nums:[2,9,16,23,32,39],   bonus:12, date:'2025-10-04' },
-  { drw:1191, nums:[4,11,18,27,34,44],  bonus:22, date:'2025-10-11' },
-  { drw:1192, nums:[7,14,21,28,36,45],  bonus:3,  date:'2025-10-18' },
-  { drw:1193, nums:[1,8,15,22,30,38],   bonus:11, date:'2025-10-25' },
-  { drw:1194, nums:[6,13,20,29,37,41],  bonus:24, date:'2025-11-01' },
-  { drw:1195, nums:[3,10,17,25,33,42],  bonus:7,  date:'2025-11-08' },
-  { drw:1196, nums:[5,12,19,26,34,43],  bonus:15, date:'2025-11-15' },
-  { drw:1197, nums:[2,9,16,23,31,40],   bonus:6,  date:'2025-11-22' },
-  { drw:1198, nums:[4,11,18,27,35,44],  bonus:20, date:'2025-11-29' },
-  { drw:1199, nums:[7,14,21,28,36,45],  bonus:4,  date:'2025-12-06' },
-  { drw:1200, nums:[1,8,15,22,30,37],   bonus:12, date:'2025-12-13' },
-  { drw:1201, nums:[6,13,20,27,34,41],  bonus:19, date:'2025-12-20' },
-  { drw:1202, nums:[3,10,17,24,33,42],  bonus:9,  date:'2025-12-27' },
-  { drw:1203, nums:[5,12,19,26,35,43],  bonus:17, date:'2026-01-03' },
-  { drw:1204, nums:[8,16,28,30,31,44],  bonus:27, date:'2026-01-10' },
-  { drw:1205, nums:[1,4,16,23,31,41],   bonus:8,  date:'2026-01-17' },
-  { drw:1206, nums:[1,3,17,26,27,42],   bonus:15, date:'2026-01-24' },
-  { drw:1207, nums:[2,17,20,35,37,39],  bonus:24, date:'2026-01-31' },
-  { drw:1208, nums:[1,7,9,17,27,38],    bonus:31, date:'2026-02-07' },
-  { drw:1209, nums:[5,11,22,30,38,41],  bonus:19, date:'2026-02-14' },
-  { drw:1210, nums:[1,7,9,17,27,38],    bonus:31, date:'2026-02-21' },
-  { drw:1211, nums:[3,9,21,28,33,42],   bonus:14, date:'2026-02-28' },
-  { drw:1212, nums:[6,13,19,26,34,40],  bonus:22, date:'2026-03-07' },
-  { drw:1213, nums:[2,11,18,29,35,43],  bonus:7,  date:'2026-03-14' },
-  { drw:1214, nums:[10,15,19,27,30,33], bonus:14, date:'2026-03-07' }, // 실제: 10·15·19·27·30·33 보너스14
-  { drw:1215, nums:[13,15,19,21,44,45], bonus:39, date:'2026-03-21' }, // 실제 확인
-  { drw:1216, nums:[3,10,14,15,23,24],  bonus:25, date:'2026-03-28' },
-  { drw:1217, nums:[8,10,15,20,29,31],  bonus:41, date:'2026-04-04' }, // 실제 확인 // ← 주의: 추첨일 토요일
-  // ★ 1218회 — 2026-04-04 추첨 실제 번호 (머니투데이 등 다수 매체 확인)
-  { drw:1218, nums:[3,28,31,32,42,45],  bonus:25, date:'2026-04-04' },
-];
-
-const BASE_LATEST_DRW = 1218;
-
-// ══════════════════════════════════════════════════════════════
-// § 2. localStorage 헬퍼
-// ══════════════════════════════════════════════════════════════
-const ls = {
-  get:    (k, fb) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : fb; } catch { return fb; } },
-  set:    (k, v)  => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
-  remove: (k)     => { try { localStorage.removeItem(k); } catch {} },
-};
-
-// ══════════════════════════════════════════════════════════════
-// § 3. API — 3단계 폴백 전략
-//   Vite 프록시(/api-lotto) → allorigins → corsproxy
-// ══════════════════════════════════════════════════════════════
-const SERVERLESS_PATH = (drw) =>
-  `/api/lotto?drwNo=${drw}`; // Vercel 서버리스 프록시 (api/lotto.js)
-
-const DH_PATH = (drw) =>
-  `/api-lotto?method=getLottoNumber&drwNo=${drw}`; // Vite 프록시 경로
-
-const DH_DIRECT = (drw) =>
-  `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drw}`;
-
-const PUBLIC_PROXIES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-];
-const KOKOMEL_LIST_URL = 'https://lotto.kokomel.com/lottos';
-
-let kokomelListPromise = null;
-
-async function tryFetch(url, timeout = 8000) {
-  const text = await tryFetchText(url, timeout);
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error('JSON 응답 아님');
-  }
-}
-
-async function tryFetchText(url, timeout = 8000) {
-  const res = await fetch(url, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(timeout),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.text();
-}
-
-function parseDrawJson(j) {
-  if (j?.returnValue !== 'success') return null;
-  return {
-    drw:   j.drwNo,
-    nums:  [j.drwtNo1, j.drwtNo2, j.drwtNo3, j.drwtNo4, j.drwtNo5, j.drwtNo6].sort((a, b) => a - b),
-    bonus: j.bnusNo,
-    date:  j.drwNoDate,
-  };
-}
-
-async function fetchOneDraw(drwNo) {
-  // 1순위: Vercel 서버리스 프록시 (프로덕션 기본 경로)
-  try {
-    const j = await tryFetch(SERVERLESS_PATH(drwNo), 12000);
-    const d = parseDrawJson(j);
-    if (d) return d;
-    if (j?.returnValue === 'fail') return null; // 아직 미추첨
-  } catch { /* vite dev 등 서버리스 없는 환경 → 폴백 */ }
-
-  // 2순위: Vite dev 프록시
-  try {
-    const j = await tryFetch(DH_PATH(drwNo), 5000);
-    const d = parseDrawJson(j);
-    if (d) return d;
-    if (j?.returnValue === 'fail') return null; // 아직 미추첨
-  } catch { /* 프록시 미설정 시 404 → 폴백 */ }
-
-  // 3·4순위: 공개 CORS 프록시
-  for (const proxy of PUBLIC_PROXIES) {
-    try {
-      const j = await tryFetch(proxy(DH_DIRECT(drwNo)), 10000);
-      const d = parseDrawJson(j);
-      if (d !== undefined) return d; // null = 미추첨도 포함
-    } catch { /* 다음 프록시 시도 */ }
-  }
-
-  try {
-    const d = await fetchFromKokomel(drwNo);
-    if (d) return d;
-  } catch { /* 마지막 공식 API 실패 메시지 유지 */ }
-
-  throw new Error('모든 프록시 실패');
-}
-
-async function fetchKokomelListText() {
-  if (!kokomelListPromise) {
-    kokomelListPromise = (async () => {
-      try {
-        return await tryFetchText(KOKOMEL_LIST_URL, 10000);
-      } catch {
-        for (const proxy of PUBLIC_PROXIES) {
-          try {
-            return await tryFetchText(proxy(KOKOMEL_LIST_URL), 10000);
-          } catch { /* 다음 프록시 시도 */ }
-        }
-        throw new Error('Kokomel 조회 실패');
-      }
-    })();
-  }
-  return kokomelListPromise;
-}
-
-async function fetchFromKokomel(drwNo) {
-  const html = await fetchKokomelListText();
-  const text = html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ');
-  const re = new RegExp(`제\\s*${drwNo}\\s*회\\s*(\\d{4})년\\s*(\\d{2})월\\s*(\\d{2})일(?:\\s*추첨)?\\s+((?:\\d{1,2}\\s+){6})\\+\\s*(\\d{1,2})`);
-  const match = text.match(re);
-  if (!match) return null;
-  return {
-    drw: drwNo,
-    nums: match[4].trim().split(/\s+/).map(Number).sort((a, b) => a - b),
-    bonus: Number(match[5]),
-    date: `${match[1]}-${match[2]}-${match[3]}`,
-  };
-}
-
-// ══════════════════════════════════════════════════════════════
-// § 4. 시드 난수 + 전체 데이터 빌드
 // ══════════════════════════════════════════════════════════════
 function seededRand(seed) {
   let s = seed;
@@ -293,88 +14,6 @@ function seededRand(seed) {
     s = (s * 1664525 + 1013904223) & 0xffffffff;
     return (s >>> 0) / 0xffffffff;
   };
-}
-
-function buildBaseData() {
-  const W = [
-    0,
-    1.08,1.02,1.05,0.98,1.03,0.99,1.07,1.01,0.96,1.04,
-    1.02,0.97,1.06,1.00,0.98,1.09,1.03,0.95,1.01,1.05,
-    0.99,1.04,1.02,0.97,1.08,1.01,0.96,1.05,1.03,0.98,
-    1.07,1.00,1.04,1.10,0.97,1.02,1.06,0.99,1.03,1.01,
-    1.05,0.98,1.02,0.96,1.04,
-  ];
-  const rand     = seededRand(20020102);
-  const knownMap = new Map(BASE_KNOWN.map(d => [d.drw, d]));
-  const data     = [];
-
-  for (let drw = 1; drw <= BASE_LATEST_DRW; drw++) {
-    if (knownMap.has(drw)) {
-      data.push(knownMap.get(drw));
-      for (let i = 0; i < 20; i++) rand();
-      continue;
-    }
-    const pool = [];
-    for (let n = 1; n <= 45; n++) {
-      const c = Math.round(W[n] * 10);
-      for (let i = 0; i < c; i++) pool.push(n);
-    }
-    const picked = new Set();
-    while (picked.size < 6) picked.add(pool[Math.floor(rand() * pool.length)]);
-    const nums = Array.from(picked).sort((a, b) => a - b);
-    let bonus;
-    do { bonus = Math.floor(rand() * 45) + 1; } while (picked.has(bonus));
-    data.push({ drw, nums, bonus });
-  }
-  return data;
-}
-
-const BASE_DATA = buildBaseData();
-
-function mergeWithCache(cacheArr) {
-  const map = new Map(BASE_DATA.map(d => [d.drw, d]));
-  cacheArr.forEach(d => map.set(d.drw, d));
-  return Array.from(map.values()).sort((a, b) => a.drw - b.drw);
-}
-
-// ══════════════════════════════════════════════════════════════
-// § 5. 자동 업데이트 타이머 (토요일 KST 21:35)
-// ══════════════════════════════════════════════════════════════
-const FIRST_DRAW_DATE_KST = '2002-12-07T00:00:00+09:00';
-const DRAW_RESULT_OPEN_HOUR_KST = 21;
-const DRAW_RESULT_OPEN_MINUTE_KST = 35;
-
-function toKstDate(now = new Date()) {
-  return new Date(now.getTime() + 9 * 60 * 60 * 1000);
-}
-
-function getExpectedLatestDraw(now = new Date()) {
-  const first = new Date(FIRST_DRAW_DATE_KST).getTime();
-  const kst = toKstDate(now);
-  const lastSaturday = new Date(kst);
-  const day = kst.getUTCDay(); // 0=일, 6=토
-  const daysSinceSaturday = (day + 1) % 7;
-  lastSaturday.setUTCDate(kst.getUTCDate() - daysSinceSaturday);
-  lastSaturday.setUTCHours(DRAW_RESULT_OPEN_HOUR_KST, DRAW_RESULT_OPEN_MINUTE_KST, 0, 0);
-
-  if (kst < lastSaturday) {
-    lastSaturday.setUTCDate(lastSaturday.getUTCDate() - 7);
-  }
-
-  const drawNo = Math.floor((lastSaturday.getTime() - first) / (7 * 24 * 60 * 60 * 1000)) + 1;
-  return Math.max(BASE_LATEST_DRW, drawNo);
-}
-
-function msUntilNextDrawUpdate() {
-  const now       = new Date();
-  const kst       = toKstDate(now);
-  const day       = kst.getUTCDay(); // 0=일, 6=토
-  const daysUntil = day === 6 ? 0 : 6 - day;
-  const next      = new Date(kst);
-  next.setUTCDate(kst.getUTCDate() + daysUntil);
-  next.setUTCHours(DRAW_RESULT_OPEN_HOUR_KST, DRAW_RESULT_OPEN_MINUTE_KST, 0, 0);
-  if (next <= kst) next.setUTCDate(next.getUTCDate() + 7);
-  return Math.max(next - kst, 0);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -709,20 +348,22 @@ function ManualInputForm({ latestDrw, onAdd }) {
 
   const handleAdd = () => {
     setErr('');
-    const drwN  = parseInt(drw);
+    const drwN  = Number(drw);
     const nums  = [n1,n2,n3,n4,n5,n6].map(Number);
-    const bonN  = parseInt(bon);
+    const bonN  = Number(bon);
 
-    if (!drwN || drwN <= latestDrw) return setErr(`회차는 ${latestDrw + 1}회 이상이어야 합니다.`);
-    if (nums.some(n => !n || n < 1 || n > 45)) return setErr('번호는 1~45 사이 숫자만 입력하세요.');
+    if (!Number.isInteger(drwN) || drwN <= latestDrw) return setErr(`회차는 ${latestDrw + 1}회 이상이어야 합니다.`);
+    if (drwN > getExpectedLatestDraw()) return setErr("아직 발표 시각이 되지 않은 회차입니다.");
+    if (date && date !== drawDate(drwN)) return setErr("회차와 추첨일이 일치하지 않습니다.");
+    if (nums.some(n => !Number.isInteger(n) || n < 1 || n > 45)) return setErr('번호는 1~45 사이 숫자만 입력하세요.');
     if (new Set(nums).size !== 6) return setErr('번호 6개가 모두 달라야 합니다.');
-    if (!bonN || bonN < 1 || bonN > 45 || nums.includes(bonN)) return setErr('보너스 번호가 잘못됐습니다.');
+    if (!Number.isInteger(bonN) || bonN < 1 || bonN > 45 || nums.includes(bonN)) return setErr('보너스 번호가 잘못됐습니다.');
 
     onAdd({
       drw:   drwN,
       nums:  [...nums].sort((a, b) => a - b),
       bonus: bonN,
-      date:  date || `${drwN}회`,
+      date:  date || drawDate(drwN),
     });
     // 초기화
     setDrw(''); setN1(''); setN2(''); setN3(''); setN4(''); setN5(''); setN6(''); setBon(''); setDate('');
@@ -856,7 +497,7 @@ function UpdateTab({ allData, latestDrw, status, log, lastFetch, onUpdate, onMan
           <span style={{ fontSize:36 }}>🗓</span>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:'#fbbf24' }}>매주 토요일 오후 9:35 (KST)</div>
-            <div style={{ fontSize:12, color:'#94a3b8', marginTop:3 }}>로또 추첨 직후 자동으로 당첨번호를 불러옵니다</div>
+            <div style={{ fontSize:12, color:'#94a3b8', marginTop:3 }}>결과 확인을 시작하며, 실패하면 5분 간격으로 재시도합니다</div>
           </div>
         </div>
         <div style={{
@@ -868,7 +509,7 @@ function UpdateTab({ allData, latestDrw, status, log, lastFetch, onUpdate, onMan
         </div>
         <div style={{ fontSize:11, color:'#475569', lineHeight:1.7, marginTop:8 }}>
           ※ 페이지가 열려 있을 때만 자동 실행됩니다.<br />
-          ※ 페이지를 닫았다 열면 7일 경과 시 자동 갱신합니다.<br />
+          ※ 페이지 재방문·화면 복귀·인터넷 재연결 시 갱신을 확인합니다.<br />
           ※ CORS 차단 환경: vite.config.js에 프록시 설정 또는 직접 입력 사용
         </div>
       </Card>
@@ -1391,144 +1032,42 @@ const TABS = [
 
 export default function LottoRecommend() {
   const [tab,       setTab]      = useState('recommend');
-  const [allData,   setAllData]  = useState(() => mergeWithCache(ls.get(LS_CACHE, [])));
-  const [latestDrw, setLatestDrw]= useState(() => ls.get(LS_LATEST, BASE_LATEST_DRW));
+  const [allData,   setAllData]  = useState(() => currentDraws());
+  const [latestDrw, setLatestDrw]= useState(() => currentDraws().at(-1)?.drw || BASE_LATEST_DRW);
   const [status,    setStatus]   = useState('idle');
   const [log,       setLog]      = useState([]);
-  const [lastFetch, setLastFetch]= useState(() => ls.get(LS_LAST_FETCH, 0));
-  const timerRef = useRef(null);
+  const [lastFetch, setLastFetch]= useState(() => lastSuccess());
 
   // 방문 카운팅 (앱별 집계)
   useEffect(() => {
     trackVisit('lotto');
   }, []);
 
-  // 원격 공유 저장소(Supabase)에서 최신 당첨번호를 불러와 로컬과 병합 (마운트 1회)
-  //   · 한 번 업데이트해두면 다른 브라우저·기기·시크릿모드에서 열어도 그대로 유지됨
-  //   · 원격 조회 실패 시 기존 로컬 데이터를 그대로 사용 (동작 영향 없음)
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const remote = await fetchSharedDraws();
-      if (!active) return;
-      // 원격 조회 성공(빈 배열 포함) 시 로컬과 병합해 정본으로 반영.
-      // 조회 자체가 실패(null)했을 땐 원격 상태를 알 수 없으므로 로컬을 그대로 유지한다.
-      const localCache = ls.get(LS_CACHE, []);
-      const map = new Map(localCache.map(d => [d.drw, d]));
-      (remote || []).forEach(d => map.set(d.drw, d)); // 원격이 정본
-      const mergedCache = Array.from(map.values()).sort((a, b) => a.drw - b.drw);
-      const newLatest = Math.max(...mergedCache.map(d => d.drw), BASE_LATEST_DRW);
-      ls.set(LS_CACHE, mergedCache); ls.set(LS_LATEST, newLatest);
-      if (!active) return;
-      setAllData(mergeWithCache(mergedCache));
-      setLatestDrw(newLatest);
-      // 로컬에만 있고 원격엔 없는 회차는 공유 저장소로 올려 다른 기기와 동기화한다.
-      // ★ 원격이 비어있을(0건) 때도 반드시 실행돼야 최초 시딩이 이뤄진다.
-      //   (이전에는 remote.length===0 이면 조기 return 해서 시딩이 영영 안 됐음)
-      if (remote) {
-        const remoteSet = new Set(remote.map(d => d.drw));
-        const localOnly = mergedCache.filter(d => !remoteSet.has(d.drw));
-        if (localOnly.length) pushSharedDraws(localOnly);
-      }
-    })();
-    return () => { active = false; };
+  const applyData = useCallback((data) => {
+    setAllData(data); setLatestDrw(data.at(-1)?.drw || BASE_LATEST_DRW);
+    setLastFetch(lastSuccess()); setStatus('success');
   }, []);
-
-  // API fetch
-  const doFetch = useCallback(async (fromDrw, silent = false) => {
-    if (!silent) setStatus('loading');
-    const cache    = ls.get(LS_CACHE, []);
-    const cacheMap = new Map(cache.map(d => [d.drw, d]));
-    const newLog   = [];
-    const targetDrw = getExpectedLatestDraw();
-    let cur = fromDrw + 1, fetched = 0, failStreak = 0;
-
-    if (fromDrw >= targetDrw) {
-      ls.set(LS_LAST_FETCH, Date.now());
-      setLastFetch(Date.now());
-      setStatus('success');
-      setLog(prev => [`ℹ️ 새 회차 없음 (최신: 제 ${fromDrw}회)`, ...prev].slice(0, 60));
-      return;
+  const doFetch = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const data = await syncLatestDraws(); applyData(data);
+      setLog(prev => [`✅ 공식 데이터 확인 완료: 1~${data.at(-1).drw}회`, ...prev].slice(0,60));
+    } catch (e) {
+      setStatus('error'); setLog(prev => [`⚠️ ${e.message} — 5분 후 자동 재시도`, ...prev].slice(0,60));
     }
-
-    while (cur <= targetDrw) {
-      if (cacheMap.has(cur)) { cur++; failStreak = 0; continue; }
-      try {
-        const d = await fetchOneDraw(cur);
-        if (!d) break;
-        cacheMap.set(d.drw, d);
-        newLog.push(`✅ ${d.drw}회 (${d.date})  ${d.nums.join('·')}  +${d.bonus}`);
-        fetched++; cur++; failStreak = 0;
-        await new Promise(r => setTimeout(r, 400));
-      } catch (e) {
-        failStreak++;
-        newLog.push(`⚠️ ${cur}회 실패 (${e?.message ?? e})`);
-        if (failStreak >= 3) break;
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    }
-
-    const newCache  = Array.from(cacheMap.values()).sort((a, b) => a.drw - b.drw);
-    const newLatest = newCache.length ? Math.max(...newCache.map(d => d.drw), BASE_LATEST_DRW) : fromDrw;
-    ls.set(LS_CACHE, newCache); ls.set(LS_LATEST, newLatest); ls.set(LS_LAST_FETCH, Date.now());
-    const merged = mergeWithCache(newCache);
-    setAllData(merged); setLatestDrw(newLatest); setLastFetch(Date.now());
-
-    if (fetched > 0) {
-      pushSharedDraws(newCache); // 원격 공유 저장소에도 반영 (best-effort)
-      setLog(prev => [...newLog, ...prev].slice(0, 60));
-      setStatus('success');
-    } else {
-      const info = failStreak >= 3
-        ? '❌ API 실패 — "직접 입력" 또는 vite.config.js 프록시 설정을 확인해 주세요'
-        : `ℹ️ 새 회차 없음 (최신: 제 ${newLatest}회)`;
-      setLog(prev => [info, ...newLog, ...prev].slice(0, 60));
-      setStatus(failStreak >= 3 ? 'error' : 'success');
-    }
+  }, [applyData]);
+  useEffect(() => watchLotto(applyData, e => {
+    setStatus('error'); setLog(prev => [`⚠️ ${e.message} — 5분 후 자동 재시도`, ...prev].slice(0,60));
+  }), [applyData]);
+  const handleManualAdd = useCallback(draw => {
+    saveDraws([draw]);
+    setLog(prev => [`✏️ ${draw.drw}회 로컬 입력 (자동 검증 대기)`, ...prev].slice(0,60));
+    setStatus('idle');
   }, []);
-
-  // 직접 입력으로 회차 등록
-  const handleManualAdd = useCallback((draw) => {
-    const cache    = ls.get(LS_CACHE, []);
-    const cacheMap = new Map(cache.map(d => [d.drw, d]));
-    cacheMap.set(draw.drw, draw);
-    const newCache  = Array.from(cacheMap.values()).sort((a, b) => a.drw - b.drw);
-    const newLatest = Math.max(...newCache.map(d => d.drw), BASE_LATEST_DRW);
-    ls.set(LS_CACHE, newCache); ls.set(LS_LATEST, newLatest); ls.set(LS_LAST_FETCH, Date.now());
-    const merged = mergeWithCache(newCache);
-    setAllData(merged); setLatestDrw(newLatest); setLastFetch(Date.now());
-    pushSharedDraws([draw]); // 원격 공유 저장소에도 반영 (best-effort)
-    setLog(prev => [`✏️ ${draw.drw}회 직접 등록: ${draw.nums.join('·')} +${draw.bonus}`, ...prev].slice(0, 60));
-    setStatus('success');
-  }, []);
-
-  // 자동 스케줄
-  useEffect(() => {
-    const schedule = () => {
-      const ms = msUntilNextDrawUpdate();
-      timerRef.current = setTimeout(async () => {
-        await doFetch(ls.get(LS_LATEST, BASE_LATEST_DRW), true);
-        schedule();
-      }, ms);
-    };
-    schedule();
-    return () => clearTimeout(timerRef.current);
-  }, [doFetch]);
-
-  // 7일 경과 자동 갱신
-  useEffect(() => {
-    if (Date.now() - ls.get(LS_LAST_FETCH, 0) > 7 * 24 * 60 * 60 * 1000) {
-      doFetch(ls.get(LS_LATEST, BASE_LATEST_DRW), true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 캐시 초기화
   const handleClearCache = useCallback(() => {
-    if (!window.confirm('캐시를 삭제하고 내장 기본 데이터로 복원합니다.\n계속하시겠습니까?')) return;
-    ls.remove(LS_CACHE); ls.remove(LS_LATEST); ls.remove(LS_LAST_FETCH);
-    setAllData(mergeWithCache([])); setLatestDrw(BASE_LATEST_DRW);
-    setLastFetch(0); setLog(['🗑 캐시 초기화 완료']); setStatus('idle');
+    if (!window.confirm('캐시를 삭제하고 공식 기본 데이터로 복원합니다. 계속하시겠습니까?')) return;
+    clearDrawCache(); setAllData(currentDraws()); setLatestDrw(BASE_LATEST_DRW);
+    setLastFetch(0); setLog(['캐시 초기화 완료']); setStatus('idle');
   }, []);
 
   const statusBadge = { loading:<span style={{color:'#fbbf24'}}> · 업데이트 중…</span>, success:<span style={{color:'#34d399'}}> · ✓ 최신</span>, error:<span style={{color:'#f87171'}}> · ⚠ 오류</span> }[status] ?? null;

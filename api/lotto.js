@@ -1,134 +1,75 @@
-// 로또 당첨번호 서버리스 프록시 — /api/lotto?drwNo=1233
-//
-// 배경: LottoRecommend.jsx가 쓰던 3단계 폴백(동행복권 직접 / allorigins / corsproxy)이
-//   전부 죽었다.
-//     · dhlottery common.do?getLottoNumber → 해외/데이터센터 IP는 홈으로 302 리다이렉트
-//     · api.allorigins.win → 408/520 (사실상 다운)
-//     · corsproxy.io → 유료 전환(무료 서버사이드 요청 403)
-//   그래서 브라우저에서 직접 최신 회차를 못 가져와 "API 업데이트 오류"가 났다.
-//
-// 이 함수는 서버(Vercel)에서 데이터를 대신 가져와 CORS 허용 JSON으로 돌려준다.
-//   1순위: 동행복권 공식 API (배포 리전에서 살아있으면 사용)
-//   2순위: kokomel 로또 전체조회 페이지(https://lotto.kokomel.com/lottos) 텍스트 파싱
-// 응답 형태는 동행복권 원본과 동일하게 맞춰, 프론트 parseDrawJson을 그대로 재사용한다.
+import { getExpectedLatestDraw, normalizeOfficial, validDraw } from '../src/lib/lottoCore.js'
 
-const UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
-
-const KOKOMEL_URL = 'https://lotto.kokomel.com/lottos'
-const CACHE_TTL = 60 * 60 * 1000 // 1시간 (warm 인스턴스 한정 in-memory 캐시)
-
-// warm 인스턴스 동안 kokomel 파싱 결과를 재사용 (drw → row)
-let _kokomel = { at: 0, map: null }
-
-async function httpGet(url, { headers = {}, timeout = 12000, redirect = 'follow' } = {}) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), timeout)
-  try {
-    return await fetch(url, {
-      headers: { 'User-Agent': UA, ...headers },
-      redirect,
-      signal: ctrl.signal,
-    })
-  } finally {
-    clearTimeout(timer)
-  }
+const OFFICIAL = 'https://www.dhlottery.co.kr/lt645/selectPstLt645InfoNew.do'
+async function getText(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://www.dhlottery.co.kr/lt645/result' }, signal: AbortSignal.timeout(10000) })
+  if (!res.ok) throw new Error(`당첨번호 서버 HTTP ${res.status}`)
+  return res.text()
 }
-
-// 동행복권 공식 JSON을 표준 형태로. 실패(리다이렉트/비JSON)면 null.
-async function fromDhlottery(drwNo) {
-  try {
-    const res = await httpGet(
-      `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`,
-      {
-        headers: { Accept: 'application/json', Referer: 'https://www.dhlottery.co.kr/' },
-        timeout: 6000,
-        // 해외/데이터센터 IP는 홈으로 302 → 리다이렉트를 따라가 큰 HTML을 받지 말고 즉시 실패 처리
-        redirect: 'manual',
-      },
-    )
-    if (!res.ok) return null // 302 등
-    const text = await res.text()
-    let j
-    try { j = JSON.parse(text) } catch { return null } // 302 후 HTML 등
-    if (j && j.returnValue === 'success') return j
-    return null
-  } catch {
-    return null
-  }
+export async function officialPage(round) {
+  const json = JSON.parse(await getText(`${OFFICIAL}?srchDir=center&srchLtEpsd=${round}`))
+  if (!Array.isArray(json?.data?.list)) throw new Error('공식 API 응답 형식 오류')
+  return json.data.list.map(normalizeOfficial)
 }
-
-// kokomel 전체조회 페이지를 파싱해 drw → {nums,bonus,date} 맵을 만든다.
-async function kokomelMap(force) {
-  const now = Date.now()
-  if (!force && _kokomel.map && now - _kokomel.at < CACHE_TTL) return _kokomel.map
-  const res = await httpGet(KOKOMEL_URL, { timeout: 12000 })
-  if (!res.ok) throw new Error(`kokomel HTTP ${res.status}`)
-  const html = await res.text()
-  const text = html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-  const rx = /제\s*(\d{3,4})\s*회\s*(\d{4})년\s*(\d{2})월\s*(\d{2})일(?:\s*추첨)?\s+((?:\d{1,2}\s+){6})\+\s*(\d{1,2})/g
+export function parseKokomel(html) {
   const map = new Map()
-  let m
-  while ((m = rx.exec(text)) !== null) {
-    const drw = Number(m[1])
-    const nums = m[5].trim().split(/\s+/).map(Number).sort((a, b) => a - b)
-    map.set(drw, { drw, date: `${m[2]}-${m[3]}-${m[4]}`, nums, bonus: Number(m[6]) })
+  function visit(value) {
+    if (!value || typeof value !== 'object') return
+    if (value.drwNo && Array.isArray(value.balls)) {
+      const date = value.desc?.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/)
+      const d = { drw: Number(value.drwNo), nums: value.balls.filter(b => b.bonus === false).map(b => Number(b.number)).sort((a,b)=>a-b), bonus: Number(value.balls.find(b => b.bonus === true)?.number), date: date && `${date[1]}-${date[2].padStart(2,'0')}-${date[3].padStart(2,'0')}` }
+      if (validDraw(d)) map.set(d.drw, d)
+    }
+    for (const child of Object.values(value)) visit(child)
   }
-  if (map.size === 0) throw new Error('kokomel 파싱 실패')
-  _kokomel = { at: Date.now(), map }
-  return map
-}
-
-// 표준 회차 객체 → 동행복권 원본 JSON 형태
-function toDhShape(row) {
-  return {
-    returnValue: 'success',
-    drwNo: row.drw,
-    drwtNo1: row.nums[0], drwtNo2: row.nums[1], drwtNo3: row.nums[2],
-    drwtNo4: row.nums[3], drwtNo5: row.nums[4], drwtNo6: row.nums[5],
-    bnusNo: row.bonus,
-    drwNoDate: row.date,
+  for (const match of html.matchAll(/self\.__next_f\.push\((.*?)\)<\/script>/gs)) {
+    try {
+      const payload = JSON.parse(match[1])[1]
+      if (typeof payload !== 'string') continue
+      for (const line of payload.split('\n')) {
+        try { visit(JSON.parse(line.slice(line.indexOf(':') + 1))) } catch { /* non-JSON Flight record */ }
+      }
+    } catch { /* unrelated script */ }
   }
+  if (!map.size) throw new Error('보조 데이터 형식 오류')
+  return [...map.values()]
 }
-
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') { res.status(204).end(); return }
-
-  const drwNo = parseInt(req.query.drwNo, 10)
-  const force = req.query.force === '1'
-
+export async function loadDraws(from, target = getExpectedLatestDraw()) {
+  const map = new Map()
+  let source = 'dhlottery'
   try {
-    // drwNo 없이 호출하면 kokomel이 가진 전체 회차 배열을 준다(진단·일괄용).
-    if (!drwNo) {
-      const map = await kokomelMap(force)
-      const draws = Array.from(map.values()).sort((a, b) => a.drw - b.drw)
-      res.setHeader('Cache-Control', 'public, max-age=600')
-      res.status(200).json({ draws })
-      return
+    let cursor = target
+    while (cursor > from) {
+      const rows = await officialPage(cursor)
+      const relevant = rows.filter(d => d.drw <= cursor && d.drw > from && d.drw <= target)
+      if (!relevant.length) break
+      relevant.forEach(d => map.set(d.drw, d))
+      cursor = Math.min(...relevant.map(d => d.drw)) - 1
     }
-
-    // 1순위: 동행복권 공식 (배포 리전에서 살아있을 때만)
-    const dh = await fromDhlottery(drwNo)
-    if (dh) { res.status(200).json(dh); return }
-
-    // 2순위: kokomel
-    const map = await kokomelMap(force)
-    const row = map.get(drwNo)
-    if (row) {
-      res.setHeader('Cache-Control', 'public, max-age=600')
-      res.status(200).json(toDhShape(row))
-      return
-    }
-
-    // 어디에도 없음 = 아직 미추첨(또는 kokomel 미갱신) → 동행복권 미추첨과 동일 신호
-    res.status(200).json({ returnValue: 'fail' })
-  } catch (e) {
-    res.status(502).json({ returnValue: 'fail', error: String(e?.message || e) })
+  } catch {
+    source = 'dhlottery+kokomel'
+    const rows = parseKokomel(await getText('https://lotto.kokomel.com/lottos'))
+    rows.filter(d => d.drw > from && d.drw <= target).forEach(d => { if (!map.has(d.drw)) map.set(d.drw,d) })
   }
+  const draws = [...map.values()].sort((a,b)=>a.drw-b.drw)
+  const complete = Array.from({length: Math.max(0,target-from)},(_,i)=>from+i+1).every(n=>map.has(n))
+  return { draws, source, target, complete }
+}
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store')
+  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
+  const target = getExpectedLatestDraw()
+  const round = req.query.drwNo === undefined ? null : Number(req.query.drwNo)
+  const from = round !== null ? round - 1 : Number(req.query.from ?? Math.max(0,target-20))
+  if (!Number.isInteger(from) || from < 0 || (from > target && round === null) || (round !== null && (!Number.isInteger(round) || round < 1))) return res.status(400).json({ error: '잘못된 회차' })
+  if (round > target) return res.status(200).json({ returnValue: 'fail', pending: true })
+  try {
+    const result = await loadDraws(from, round ?? target)
+    if (!result.complete) return res.status(503).json({ ...result, error: '당첨 결과가 아직 제공되지 않았거나 일부 회차를 조회하지 못했습니다. 잠시 후 재시도합니다.' })
+    if (round !== null) {
+      const d = result.draws[0]
+      return res.status(200).json({ returnValue:'success', drwNo:d.drw, drwNoDate:d.date, bnusNo:d.bonus, ...Object.fromEntries(d.nums.map((n,i)=>[`drwtNo${i+1}`,n])) })
+    }
+    return res.status(200).json(result)
+  } catch (e) { return res.status(502).json({ error: e.message }) }
 }
